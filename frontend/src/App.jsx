@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ServiceList from './pages/ServiceList/ServiceList';
 import ServiceDetail from './pages/ServiceDetail/ServiceDetail';
+import ServiceManagement from './pages/Admin/Services';
 import './App.css';
 
 function App() {
@@ -13,6 +14,8 @@ function App() {
         <Route path="/services/detail/:id" element={<ServiceDetail />} />
         <Route path="/services/:categoryName" element={<ServiceList />} />
         <Route path="/services" element={<ServiceList />} />
+        <Route path="/admin/service" element={<ServiceManagement />} />
+        <Route path="/admin/services" element={<ServiceManagement />} />
         {/* Thêm các route khác ở đây */}
       </Routes>
     </Router>
