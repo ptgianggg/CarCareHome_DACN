@@ -17,7 +17,7 @@ public class Service {
     private String category;
     private Double price;
     private Double originalPrice;
-    private Integer discountPercentage;
+    private Integer discountPercentage; 
     private String imageUrl;
     private Integer duration;
     private Boolean active;

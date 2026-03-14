@@ -15,14 +15,18 @@ const ServiceDetail = () => {
     const [loading, setLoading] = useState(true);
     const [localImageMap, setLocalImageMap] = useState({});
 
+    console.log("ServiceDetail Rendering - ID from URL:", id);
+
     const [imgIdx, setImgIdx] = useState(0);
 
     useEffect(() => {
         const fetchDetail = async () => {
+            console.log("Fetching service detail for ID:", id);
             setLoading(true);
             setImgIdx(0); // Reset image index on new service
             try {
                 const data = await getServiceById(id);
+                console.log("Fetched Data:", data);
                 setService(data);
             } catch (error) {
                 console.error("Fetch service detail failed:", error);
@@ -41,29 +45,6 @@ const ServiceDetail = () => {
             setLocalImageMap({});
         }
     }, []);
-
-    if (loading) {
-        return (
-            <div className="service-detail-loading">
-                <Header />
-                <div className="loading-content">Đang tải chi tiết dịch vụ...</div>
-                <Footer />
-            </div>
-        );
-    }
-
-    if (!service) {
-        return (
-            <div className="service-detail-error">
-                <Header />
-                <div className="error-content">
-                    <h2>Xin lỗi, không tìm thấy dịch vụ này!</h2>
-                    <button onClick={() => navigate("/services")}>Quay lại danh sách</button>
-                </div>
-                <Footer />
-            </div>
-        );
-    }
 
     const imageCandidates = useMemo(() => {
         if (!service) return [FALLBACK_IMAGE];
@@ -93,6 +74,29 @@ const ServiceDetail = () => {
         paths.push(FALLBACK_IMAGE);
         return paths;
     }, [service, localImageMap]);
+
+    if (loading) {
+        return (
+            <div className="service-detail-loading">
+                <Header />
+                <div className="loading-content">Đang tải chi tiết dịch vụ...</div>
+                <Footer />
+            </div>
+        );
+    }
+
+    if (!service) {
+        return (
+            <div className="service-detail-error">
+                <Header />
+                <div className="error-content">
+                    <h2>Xin lỗi, không tìm thấy dịch vụ này!</h2>
+                    <button onClick={() => navigate("/services")}>Quay lại danh sách</button>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
 
     return (
         <div className="service-detail-page">
@@ -159,9 +163,9 @@ const ServiceDetail = () => {
                         <div className="detail-actions">
                             <button
                                 className="primary-book-btn"
-                                onClick={() => navigate(`/booking?service_id=${service.id}&service_price=${encodeURIComponent(service.price ?? 0)}&service_name=${encodeURIComponent(service.name || "")}`)}
+                                onClick={() => alert("Tính năng đặt lịch đang được bảo trì. Vui lòng quay lại sau!")}
                             >
-                                Đặt lịch ngay
+                                Đặt lịch ngay (Sắp có)
                             </button>
                             <button className="secondary-share-btn">Chia sẻ dịch vụ</button>
                         </div>
