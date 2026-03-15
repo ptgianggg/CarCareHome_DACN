@@ -17,6 +17,7 @@ function CategoryManagement() {
     const [form, setForm] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
         fetchData();
@@ -34,6 +35,10 @@ function CategoryManagement() {
             setLoading(false);
         }
     }
+
+    const filteredCategories = categories.filter((cat) =>
+        cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     function onChange(event) {
         const { name, value } = event.target;
@@ -122,9 +127,9 @@ function CategoryManagement() {
         <>
             <header className="topbar">
                 <div>
-                    <p className="eyebrow">Danh muc</p>
-                    <h2>Quan ly danh muc lon</h2>
-                    <p className="topbar-copy">Dong bo danh muc hien thi tren Header va trang Tat ca dich vu.</p>
+                    <p className="eyebrow">Danh mục</p>
+                    <h2>Quản lý danh mục dịch vụ</h2>
+                    <p className="topbar-copy">Quản lý các nhóm dịch vụ để dễ dàng phân loại và tìm kiếm.</p>
                 </div>
             </header>
 
@@ -141,16 +146,26 @@ function CategoryManagement() {
                 <article className="panel service-table-panel">
                     <div className="panel-heading">
                         <div>
-                            <p className="eyebrow">Danh sach</p>
-                            <h3>Danh muc hien co ({categories.length})</h3>
+                            <p className="eyebrow">Danh sách</p>
+                            <h3>Danh mục hiện có ({filteredCategories.length})</h3>
                         </div>
                         <button type="button" className="primary-button" onClick={onAddClick}>
                             Thêm
                         </button>
                     </div>
 
-                    <div className="service-table" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                        <div className="service-table-head">
+                    <div className="filter-bar">
+                        <input
+                            type="text"
+                            className="filter-input"
+                            placeholder="Tìm kiếm theo tên danh mục..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="service-table">
+                        <div className="category-table-head">
                             <span>Tên danh mục</span>
                             <span>Tác vụ</span>
                         </div>
@@ -158,8 +173,8 @@ function CategoryManagement() {
                         {loading ? <p>Đang tải dữ liệu...</p> : null}
 
                         {!loading &&
-                            categories.map((cat) => (
-                                <div key={cat.id} className="service-table-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                            filteredCategories.map((cat) => (
+                                <div key={cat.id} className="category-table-row">
                                     <span style={{ fontWeight: "700" }}>{cat.name}</span>
                                     <span className="row-actions">
                                         <button
@@ -167,22 +182,22 @@ function CategoryManagement() {
                                             className="ghost-button action-button"
                                             onClick={() => onEdit(cat)}
                                         >
-                                            Sua
+                                            Sửa
                                         </button>
                                         <button
                                             type="button"
                                             className="danger-button action-button"
                                             onClick={() => onDelete(cat.id)}
                                         >
-                                            Xoa
+                                            Xóa
                                         </button>
                                     </span>
                                 </div>
                             ))}
 
-                        {!loading && !categories.length ? (
+                        {!loading && !filteredCategories.length ? (
                             <div className="empty-state">
-                                <p>Chua co danh muc. Bam Them de tao moi.</p>
+                                <p>Không tìm thấy danh mục nào. {categories.length === 0 ? "Bấm Thêm để tạo mới." : ""}</p>
                             </div>
                         ) : null}
                     </div>
@@ -194,14 +209,14 @@ function CategoryManagement() {
                     <article className="panel service-modal" onClick={(event) => event.stopPropagation()}>
                         <div className="panel-heading">
                             <div>
-                                <p className="eyebrow">{editingId ? "Cap nhat" : "Tao moi"}</p>
-                                <h3>{editingId ? "Sua danh muc" : "Them danh muc"}</h3>
+                                <p className="eyebrow">{editingId ? "Cập nhật" : "Tạo mới"}</p>
+                                <h3>{editingId ? "Sửa danh mục" : "Thêm danh mục"}</h3>
                             </div>
                         </div>
 
                         <form className="service-form" onSubmit={onSubmit}>
                             <label>
-                                Tên danh mục *
+                                Tên danh mục
                                 <input
                                     name="name"
                                     value={form.name}
@@ -213,10 +228,10 @@ function CategoryManagement() {
 
                             <div className="service-form-actions">
                                 <button type="submit" className="primary-button">
-                                    {editingId ? "Luu thay doi" : "Them danh muc"}
+                                    {editingId ? "Lưu thay đổi" : "Thêm danh mục"}
                                 </button>
                                 <button type="button" className="ghost-button" onClick={closeForm}>
-                                    Dong
+                                    Đóng
                                 </button>
                             </div>
                         </form>

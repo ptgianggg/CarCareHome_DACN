@@ -226,7 +226,7 @@ function ServiceManagement() {
                 <div>
                     <p className="eyebrow">Dich vu</p>
                     <h2>Quan ly danh muc dich vu</h2>
-                    <p className="topbar-copy">Double click vao dong de xem chi tiet dich vu.</p>
+                    <p className="topbar-copy"></p>
                 </div>
             </header>
 

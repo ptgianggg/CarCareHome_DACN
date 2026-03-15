@@ -698,6 +698,29 @@
     border: 1px solid var(--admin-border);
 }
 
+.category-table-head,
+.category-table-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.category-table-head {
+    padding: 0 14px;
+    color: var(--admin-text-muted);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.category-table-row {
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid var(--admin-border);
+}
+
 .service-description {
     color: var(--admin-text-soft);
     line-height: 1.45;
@@ -848,7 +871,9 @@
     .booking-index-head,
     .booking-index-row,
     .service-table-head,
-    .service-table-row {
+    .service-table-row,
+    .category-table-head,
+    .category-table-row {
         grid-template-columns: 1fr;
     }
 
