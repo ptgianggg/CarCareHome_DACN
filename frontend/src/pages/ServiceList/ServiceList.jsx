@@ -57,6 +57,7 @@ const ServiceList = () => {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [localImageMap, setLocalImageMap] = useState({});
+    const [searchTerm, setSearchTerm] = useState("");
     const navigate = useNavigate();
     const { categoryName } = useParams();
 
@@ -117,6 +118,16 @@ const ServiceList = () => {
         });
     }
 
+
+    // Filter by searchTerm
+    if (searchTerm.trim()) {
+        const lowerSearch = searchTerm.toLowerCase();
+        groupedServices = groupedServices.map(group => ({
+            ...group,
+            items: group.items.filter(item => item.name.toLowerCase().includes(lowerSearch))
+        })).filter(group => group.items.length > 0);
+    }
+
     // Filter if categoryName exists in URL
     if (categoryName) {
         const decodedName = decodeURIComponent(categoryName);
@@ -137,12 +148,24 @@ const ServiceList = () => {
                 <div className="category-top-bar">
                     <button className="icon-btn" onClick={() => navigate(categoryName ? "/services" : "/home")}>←</button>
                     <span className="title">{categoryName ? decodeURIComponent(categoryName) : "Tất cả dịch vụ"}</span>
+                    <div className="search-box-container">
+                        <input
+                            type="text"
+                            className="list-search-input"
+                            placeholder="Tìm kiếm dịch vụ..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        {searchTerm && (
+                            <button className="clear-search-btn" onClick={() => setSearchTerm("")}>✕</button>
+                        )}
+                    </div>
                     <button className="icon-btn" onClick={() => navigate("/home")}>🏠</button>
                 </div>
 
                 {groupedServices.length === 0 ? (
                     <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
-                        Chưa có dịch vụ nào đang hoạt động.
+                        {searchTerm ? "Không tìm thấy dịch vụ nào khớp với từ khóa." : "Chưa có dịch vụ nào đang hoạt động."}
                     </div>
                 ) : null}
 

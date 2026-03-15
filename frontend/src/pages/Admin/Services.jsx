@@ -47,6 +47,8 @@ function ServiceManagement() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [detailService, setDetailService] = useState(null);
     const [categoryOptions, setCategoryOptions] = useState([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("");
     const [localImageMap, setLocalImageMap] = useState(() => {
         try {
             const raw = localStorage.getItem(LOCAL_IMAGE_MAP_KEY);
@@ -79,6 +81,12 @@ function ServiceManagement() {
             setLoading(false);
         }
     }
+
+    const filteredServices = services.filter((svc) => {
+        const matchesSearch = svc.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = selectedCategory === "" || svc.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+    });
 
     function onChange(event) {
         const { name, value } = event.target;
@@ -236,11 +244,33 @@ function ServiceManagement() {
                     <div className="panel-heading">
                         <div>
                             <p className="eyebrow">Danh sach</p>
-                            <h3>Dich vu hien co ({services.length})</h3>
+                            <h3>Dich vu hien co ({filteredServices.length})</h3>
                         </div>
                         <button type="button" className="primary-button" onClick={onAddClick}>
                             Thêm
                         </button>
+                    </div>
+
+                    <div className="filter-bar">
+                        <input
+                            type="text"
+                            className="filter-input"
+                            placeholder="Tìm kiếm theo tên dịch vụ..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <select
+                            className="filter-select"
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                        >
+                            <option value="">Tất cả danh mục</option>
+                            {categoryOptions.map((cat) => (
+                                <option key={cat.id || cat.name} value={cat.name}>
+                                    {cat.name}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="service-table">
@@ -258,7 +288,7 @@ function ServiceManagement() {
                         {loading ? <p>Dang tai du lieu...</p> : null}
 
                         {!loading &&
-                            services.map((service) => (
+                            filteredServices.map((service) => (
                                 <div
                                     key={service.id}
                                     className="service-table-row"

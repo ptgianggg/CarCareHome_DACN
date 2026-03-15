@@ -74,6 +74,7 @@
     line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -91,6 +92,7 @@
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 1;
+    line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-height: 1.4;
@@ -285,6 +287,54 @@
 
 .category-top-bar .title {
     text-transform: uppercase;
+}
+
+.search-box-container {
+    position: relative;
+    flex: 1;
+    margin: 0 15px;
+    max-width: 240px;
+}
+
+.list-search-input {
+    width: 100%;
+    padding: 6px 30px 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 0.85rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.list-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.list-search-input:focus {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clear-search-btn:hover {
+    opacity: 1;
 }
 
 .category-section {
