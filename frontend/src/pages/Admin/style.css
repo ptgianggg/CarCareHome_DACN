@@ -299,6 +299,35 @@
     font: inherit;
 }
 
+.admin-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 8px;
+    background: var(--admin-glass);
+    border-radius: 16px;
+    width: fit-content;
+}
+
+.tab-item {
+    padding: 10px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--admin-text-soft);
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.tab-item:hover {
+    background: var(--admin-glass-strong);
+    color: var(--admin-text);
+}
+
+.tab-item.active {
+    background: var(--admin-primary);
+    color: #fff;
+}
+
 .ghost-button {
     background: rgba(148, 163, 184, 0.14);
     color: var(--admin-text);

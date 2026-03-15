@@ -6,7 +6,9 @@ import {
     updateService,
     getCategories,
 } from "../../services/api";
+import { NavLink } from "react-router-dom";
 import "./style.css";
+
 
 const LOCAL_IMAGE_MAP_KEY = "service_local_images";
 
@@ -219,6 +221,15 @@ function ServiceManagement() {
                     <p className="topbar-copy">Double click vao dong de xem chi tiet dich vu.</p>
                 </div>
             </header>
+
+            <nav className="admin-tabs">
+                <NavLink to="/admin/services" className={({ isActive }) => isActive ? "tab-item active" : "tab-item"}>
+                    Dịch vụ
+                </NavLink>
+                <NavLink to="/admin/categories" className={({ isActive }) => isActive ? "tab-item active" : "tab-item"}>
+                    Danh mục
+                </NavLink>
+            </nav>
 
             <section className="service-layout">
                 <article className="panel service-table-panel">

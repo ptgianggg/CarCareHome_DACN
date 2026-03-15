@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import ServiceList from './pages/ServiceList/ServiceList';
 import ServiceDetail from './pages/ServiceDetail/ServiceDetail';
 import ServiceManagement from './pages/Admin/Services';
+import CategoryManagement from './pages/Admin/Categories';
 import './App.css';
 
 function App() {
@@ -14,8 +15,10 @@ function App() {
         <Route path="/services/detail/:id" element={<ServiceDetail />} />
         <Route path="/services/:categoryName" element={<ServiceList />} />
         <Route path="/services" element={<ServiceList />} />
+        <Route path="/admin" element={<Navigate to="/admin/services" />} />
         <Route path="/admin/service" element={<ServiceManagement />} />
         <Route path="/admin/services" element={<ServiceManagement />} />
+        <Route path="/admin/categories" element={<CategoryManagement />} />
         {/* Thêm các route khác ở đây */}
       </Routes>
     </Router>
