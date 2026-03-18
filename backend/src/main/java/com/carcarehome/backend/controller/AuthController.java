@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.*;
 import com.carcarehome.backend.service.AuthService;
 import com.carcarehome.backend.dto.LoginRequest;
 import com.carcarehome.backend.dto.RegisterRequest;
+import com.carcarehome.backend.dto.ForgotPasswordRequest;
+import com.carcarehome.backend.dto.ResetPasswordRequest;
+import jakarta.validation.Valid;
 
 import java.util.Map;
 
@@ -18,7 +21,7 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
             Map<String, Object> result = authService.register(request);
             return ResponseEntity.ok(result);
@@ -29,7 +32,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
             Map<String, Object> result = authService.login(request);
             return ResponseEntity.ok(result);
@@ -47,6 +50,20 @@ public class AuthController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(401)
                     .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return ResponseEntity.ok(authService.forgotPassword(request.getEmail()));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        try {
+            return ResponseEntity.ok(authService.resetPassword(request.getToken(), request.getNewPassword()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 }
