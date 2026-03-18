@@ -80,6 +80,22 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
   return res.json();
 };
 
+// ============================================================
+// PROFILE APIs (PROTECTED)
+// ============================================================
+export const getProfile = async () => {
+  return fetchWithAuth("/users/profile", {
+    method: "GET"
+  });
+};
+
+export const updateProfile = async (userData) => {
+  return fetchWithAuth("/users/profile", {
+    method: "PUT",
+    body: JSON.stringify(userData)
+  });
+};
+
 // Logout: xoá token và user khỏi localStorage
 export const logout = () => {
   localStorage.removeItem("token");

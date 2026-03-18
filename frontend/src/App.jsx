@@ -7,6 +7,7 @@ import Register from "@/pages/Auth/Register";
 import ForgotPassword from "@/pages/Auth/ForgotPassword";
 import ResetPassword from "@/pages/Auth/ResetPassword";
 import Home from "@/pages/Home/Home";
+import Profile from "@/pages/Profile/Profile";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -35,6 +36,7 @@ function App() {
           <Routes>
             <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route index element={<Home />} />
+              <Route path="profile" element={<Profile />} />
               {/* Thêm các route cần Header/Footer khác ở đây sau này */}
             </Route>
             <Route path="/login" element={<Login />} />
