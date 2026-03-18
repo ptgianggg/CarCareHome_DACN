@@ -1,0 +1,4 @@
+/* Reuse styles from Auth.css or move them here */
+@import "../../pages/Auth/Auth.css";
+
+/* No extra styles needed yet as Auth.css is very comprehensive */
