@@ -209,6 +209,36 @@ export const deleteService = async (id) => {
     return res.ok;
 };
 
+
+
+// ===============================
+// BOOKINGS
+// ===============================
+
+export const getBookings = async () => {
+  const res = await fetch(`${API_URL}/bookings`);
+  if (!res.ok) return [];
+  return res.json();
+};
+
+export const createBooking = async (booking) => {
+  const res = await fetch(`${API_URL}/bookings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(booking),
+  });
+
+  if (!res.ok) {
+    const message = await parseErrorMessage(res, "Khong the tao lich hen");
+    return { error: true, message };
+  }
+
+  return res.json();
+};
+
+
 // ===============================
 // CATEGORIES
 // ===============================

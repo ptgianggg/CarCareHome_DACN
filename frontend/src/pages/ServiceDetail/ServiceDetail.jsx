@@ -163,9 +163,9 @@ const ServiceDetail = () => {
                         <div className="detail-actions">
                             <button
                                 className="primary-book-btn"
-                                onClick={() => alert("Tính năng đặt lịch đang được bảo trì. Vui lòng quay lại sau!")}
+                                onClick={() => navigate(`/booking?service_id=${service.id}`)}
                             >
-                                Đặt lịch ngay (Sắp có)
+                                Đặt lịch ngay
                             </button>
                             <button className="secondary-share-btn">Chia sẻ dịch vụ</button>
                         </div>
