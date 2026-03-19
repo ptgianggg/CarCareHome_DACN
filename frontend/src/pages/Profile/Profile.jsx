@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { updateProfile, getProfile } from "@/services/api";
+import { updateProfile, getProfile, uploadAvatar } from "@/services/api";
 import FormInput from "@/components/common/FormInput/FormInput";
 import "./Profile.css";
 
@@ -9,9 +9,11 @@ const Profile = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: ""
+    phone: "",
+    avatar: ""
   });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
@@ -23,11 +25,11 @@ const Profile = () => {
           setFormData({
             name: data.name || "",
             email: data.email || "",
-            phone: data.phone || ""
+            phone: data.phone || "",
+            avatar: data.avatar || ""
           });
         }
       } catch (err) {
-        // If API fails, fall back to Context data
         if (user) {
           setFormData(prev => ({
             ...prev,
@@ -45,6 +47,35 @@ const Profile = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB.");
+      return;
+    }
+
+    setUploading(true);
+    setError("");
+
+    try {
+      const result = await uploadAvatar(file);
+      if (result && result.avatar) {
+        setFormData(prev => ({ ...prev, avatar: result.avatar }));
+        // Cập nhật context để đồng bộ avatar
+        login({ ...user, avatar: result.avatar }, localStorage.getItem("token"));
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 2000);
+      }
+    } catch (err) {
+      setError("Không thể tải ảnh lên. Vui lòng thử lại.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -54,7 +85,6 @@ const Profile = () => {
     try {
       const result = await updateProfile(formData);
       if (result) {
-        // Update local context
         login({ ...user, ...result }, localStorage.getItem("token"));
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
@@ -66,6 +96,15 @@ const Profile = () => {
     }
   };
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+  const SERVER_BASE = API_BASE_URL.endsWith("/api") 
+    ? API_BASE_URL.replace("/api", "") 
+    : API_BASE_URL.replace("/api/", "");
+
+  const avatarUrl = formData.avatar 
+    ? (formData.avatar.startsWith('http') ? formData.avatar : `${SERVER_BASE}${formData.avatar}`)
+    : null;
+
   return (
     <div className="profile-wrapper">
       <div className="profile-container">
@@ -74,12 +113,35 @@ const Profile = () => {
         <div className="profile-sidebar">
           <div className="profile-avatar-wrapper">
             <div className="profile-avatar-big">
-              {formData.name?.charAt(0).toUpperCase() || user?.name?.charAt(0).toUpperCase()}
+              {avatarUrl ? (
+                <img 
+                  src={avatarUrl} 
+                  alt="Avatar" 
+                  className="avatar-img"
+                  onError={(e) => {
+                    console.error("Avatar image failed to load:", avatarUrl);
+                    e.target.style.display = 'none';
+                    // Fallback to initial
+                    const initial = formData.name?.charAt(0).toUpperCase() || user?.name?.charAt(0).toUpperCase();
+                    e.target.parentElement.textContent = initial;
+                  }}
+                />
+              ) : (
+                formData.name?.charAt(0).toUpperCase() || user?.name?.charAt(0).toUpperCase()
+              )}
             </div>
+            {uploading && <div className="avatar-loading"><span className="spinner-small"></span></div>}
             <label className="avatar-edit-btn" htmlFor="avatar-upload">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             </label>
-            <input type="file" id="avatar-upload" hidden accept="image/*" />
+            <input 
+              type="file" 
+              id="avatar-upload" 
+              hidden 
+              accept="image/*" 
+              onChange={handleAvatarChange}
+              disabled={uploading}
+            />
           </div>
           
           <h2>{formData.name || "Người dùng"}</h2>
@@ -126,10 +188,6 @@ const Profile = () => {
                 icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}
               />
             </div>
-
-
-
-
 
             <div className="profile-actions form-full-width">
               <button type="button" className="btn-profile-cancel" onClick={() => window.history.back()}>

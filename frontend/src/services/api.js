@@ -77,7 +77,22 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
     return;
   }
 
-  return res.json();
+  let data = {};
+  try {
+      data = await res.json();
+  } catch (e) {
+      data = { message: res.statusText };
+  }
+
+  if (!res.ok) {
+      return { 
+          error: true, 
+          message: data.message || data.error || res.statusText,
+          status: res.status 
+      };
+  }
+
+  return data;
 };
 
 // ============================================================
@@ -94,6 +109,29 @@ export const updateProfile = async (userData) => {
     method: "PUT",
     body: JSON.stringify(userData)
   });
+};
+
+export const uploadAvatar = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_URL}/users/profile/avatar`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getToken()}`
+      // Không set Content-Type để trình duyệt tự nhận diện multipart/form-data
+    },
+    body: formData
+  });
+
+  if (res.status === 401) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+    return;
+  }
+
+  return res.json();
 };
 
 // ============================================================

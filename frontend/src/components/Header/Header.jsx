@@ -55,7 +55,15 @@ function Header() {
               onClick={() => setShowDropdown(!showDropdown)}
             >
               <div className="user-avatar">
-                {user.name?.charAt(0).toUpperCase()}
+                {user.avatar ? (
+                  <img 
+                    src={`${import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:8080"}${user.avatar}`} 
+                    alt="Avatar" 
+                    className="header-avatar-img"
+                  />
+                ) : (
+                  user.name?.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="user-info">
                 <span className="user-name">{user.name}</span>

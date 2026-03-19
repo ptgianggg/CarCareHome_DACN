@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/services/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/categories/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 
                 // Phân quyền cho Admin
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

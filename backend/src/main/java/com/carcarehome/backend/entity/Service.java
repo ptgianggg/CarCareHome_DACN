@@ -18,7 +18,10 @@ public class Service {
     private Double price;
     private Double originalPrice;
     private Integer discountPercentage; 
-    private String imageUrl;
+    @ElementCollection
+    @CollectionTable(name = "service_images", joinColumns = @JoinColumn(name = "service_id"))
+    @Column(name = "image_url")
+    private java.util.List<String> imageUrls;
     private Integer duration;
     private Boolean active;
     private String storeName;
