@@ -256,19 +256,25 @@
     background: rgba(255, 255, 255, 0.9);
 }
 
-.admin-exit-btn {
-    width: 100%;
-    text-align: left;
-    margin-top: 6px;
-    border: 1px solid rgba(248, 113, 113, 0.35);
-    background: rgba(248, 113, 113, 0.16);
-    color: #fecaca;
-    font-weight: 600;
+.logout-icon-btn {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.admin-exit-btn:hover {
-    background: rgba(248, 113, 113, 0.24);
+.logout-icon-btn:hover {
+    background: #ef4444;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .sidebar-card h2,
@@ -1662,5 +1668,51 @@ input:checked+.slider:before {
     object-fit: contain;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.05);
+}
+
+/* Multi-Vehicle Booking Details in Admin */
+.booking-items-detail {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--admin-border);
+}
+
+.items-table {
+    margin-top: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid var(--admin-border);
+    overflow: hidden;
+}
+
+.items-head, .item-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.5fr 0.8fr;
+    gap: 15px;
+    padding: 12px 18px;
+    align-items: center;
+}
+
+.items-head {
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-text-muted);
+}
+
+.item-row {
+    border-top: 1px solid var(--admin-border);
+    font-size: 0.92rem;
+}
+
+.item-row span:last-child {
+    font-weight: 700;
+    color: var(--admin-accent);
+}
+
+.service-detail-grid p.full {
+    grid-column: 1 / -1;
 }
 

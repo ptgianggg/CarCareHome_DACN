@@ -165,6 +165,12 @@ export const getBookings = async () => {
   });
 };
 
+export const getMyBookings = async (email) => {
+  return fetchWithAuth(`/booking/user?email=${email}`, {
+    method: "GET"
+  });
+};
+
 export const createService = async (serviceData) => {
   return fetchWithAuth("/services", {
     method: "POST",

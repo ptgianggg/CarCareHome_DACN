@@ -49,7 +49,7 @@
     top: 0;
     z-index: 100;
     background: white;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     padding: 0 20px;
 }
 
@@ -213,7 +213,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.6));
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
     padding: 20px 15px 10px;
     display: flex;
     justify-content: flex-end;
@@ -307,14 +307,20 @@
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 @media (max-width: 768px) {
     .service-hero {
         padding: 60px 20px;
     }
+
     .hero-content h1 {
         font-size: 2rem;
     }

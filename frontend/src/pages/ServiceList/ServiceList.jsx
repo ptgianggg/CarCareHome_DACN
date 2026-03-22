@@ -58,8 +58,8 @@ const ServiceList = () => {
             const lowerSearch = searchTerm.toLowerCase();
             result = result.map(group => ({
                 ...group,
-                items: group.items.filter(item => 
-                    item.name.toLowerCase().includes(lowerSearch) || 
+                items: group.items.filter(item =>
+                    item.name.toLowerCase().includes(lowerSearch) ||
                     (item.description && item.description.toLowerCase().includes(lowerSearch))
                 )
             })).filter(group => group.items.length > 0);
@@ -79,11 +79,11 @@ const ServiceList = () => {
             const url = service.imageUrls[0];
             return url.startsWith("http") ? url : `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
         }
-        
+
         // 2. Kiểm tra ảnh cũ (imageUrl) để tương thích ngược
         if (service.imageUrl) {
-            return service.imageUrl.startsWith("http") 
-                ? service.imageUrl 
+            return service.imageUrl.startsWith("http")
+                ? service.imageUrl
                 : `${API_BASE_URL}${service.imageUrl.startsWith("/") ? "" : "/"}${service.imageUrl}`;
         }
 
@@ -95,7 +95,7 @@ const ServiceList = () => {
                 return firstLocal;
             }
         }
-        
+
         return FALLBACK_IMAGE;
     };
 
@@ -116,26 +116,19 @@ const ServiceList = () => {
         <div className="service-list-page">
             <Header />
 
-            {/* Premium Hero Section */}
-            <div className="service-hero">
-                <div className="hero-content">
-                    <h1>Dịch Vụ Chăm Sóc Xe</h1>
-                    <p>Trải nghiệm dịch vụ chuyên nghiệp, tận tâm và chất lượng hàng đầu cho xế yêu của bạn.</p>
-                </div>
-            </div>
 
             {/* Sticky Category Nav */}
             <div className="category-nav-wrapper">
                 <div className="category-nav-scroll">
-                    <div 
+                    <div
                         className={`cat-nav-item ${!categoryName ? 'active' : ''}`}
                         onClick={() => navigate("/services")}
                     >
                         <span className="cat-nav-label">Tất cả</span>
                     </div>
                     {categories.map(cat => (
-                        <div 
-                            key={cat.id} 
+                        <div
+                            key={cat.id}
                             className={`cat-nav-item ${categoryName === encodeURIComponent(cat.name) ? 'active' : ''}`}
                             onClick={() => navigate(`/services/${encodeURIComponent(cat.name)}`)}
                         >
@@ -177,11 +170,11 @@ const ServiceList = () => {
                             <h2>{cat.name}</h2>
                             <div style={{ flex: 1, height: '2px', background: 'linear-gradient(to right, #edf2f7, transparent)', marginLeft: '10px' }}></div>
                         </div>
-                        
+
                         <div className="services-grid-refined">
                             {cat.items.map((service) => (
-                                <div 
-                                    key={service.id} 
+                                <div
+                                    key={service.id}
                                     className="premium-card"
                                     onClick={() => navigate(`/services/detail/${service.id}`)}
                                 >
@@ -193,18 +186,18 @@ const ServiceList = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="card-body-modern">
                                         <h3>{service.name}</h3>
                                         <p className="desc">{service.description || "Dịch vụ chăm sóc xe chuyên nghiệp nhất tại Car Care Home."}</p>
-                                        
+
                                         <div className="card-footer-flex">
                                             <div className="duration-info">
-                                                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="7" cy="7" r="6"/><path d="M7 3v4l2 2"/></svg>
+                                                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="7" cy="7" r="6" /><path d="M7 3v4l2 2" /></svg>
                                                 <span>60-90 phút</span>
                                             </div>
                                             <div className="view-btn-circle">
-                                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+                                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7" /></svg>
                                             </div>
                                         </div>
                                     </div>

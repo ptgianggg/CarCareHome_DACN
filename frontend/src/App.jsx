@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { SystemProvider } from "@/context/SystemContext";
+import { Toaster } from "react-hot-toast";
 import MainLayout from "@/layouts/MainLayout/MainLayout";
 import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
@@ -9,11 +11,13 @@ import ResetPassword from "@/pages/Auth/ResetPassword";
 import Home from "@/pages/Home/Home";
 import Profile from "@/pages/Profile/Profile";
 import Booking from "@/pages/Booking/Booking";
+import MyBookings from "@/pages/MyBookings/MyBookings";
 import ServiceList from "@/pages/ServiceList/ServiceList";
 import ServiceDetail from "@/pages/ServiceDetail/ServiceDetail";
 import ServiceManagement from "@/pages/Admin/Services";
 import CategoriesManagement from "@/pages/Admin/Categories";
 import BookingManagement from "@/pages/Admin/Bookings";
+import SystemSettings from "@/pages/Admin/SystemSettings";
 import AdminLayout from "@/layouts/AdminLayout/AdminLayout";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -39,34 +43,41 @@ function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-              <Route index element={<Home />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="booking" element={<Booking />} />
-              {/* Thêm các route cần Header/Footer khác ở đây sau này */}
-            </Route>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            
-            {/* Các trang có tự import Header/Footer riêng */}
-            <Route path="/services" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
-            <Route path="/services/:categoryName" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
-            <Route path="/services/detail/:id" element={<ProtectedRoute><ServiceDetail /></ProtectedRoute>} />
-            
-            {/* Các trang Admin */}
-            <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-              <Route path="services" element={<ServiceManagement />} />
-              <Route path="categories" element={<CategoriesManagement />} />
-              <Route path="booking" element={<BookingManagement />} />
-            </Route>
-            
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </BrowserRouter>
+        <SystemProvider>
+          <Toaster position="top-right" reverseOrder={false} />
+          <BrowserRouter>
+            <Routes>
+              {/* Trang công khai sử dụng MainLayout */}
+              <Route path="/" element={<MainLayout />}>
+                <Route index element={<Home />} />
+                <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
+                <Route path="my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+              </Route>
+
+              {/* Các trang Auth */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              
+              {/* Các trang dịch vụ */}
+              <Route path="/services" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
+              <Route path="/services/:categoryName" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
+              <Route path="/services/detail/:id" element={<ProtectedRoute><ServiceDetail /></ProtectedRoute>} />
+              
+              {/* Các trang Admin */}
+              <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+                <Route path="services" element={<ServiceManagement />} />
+                <Route path="categories" element={<CategoriesManagement />} />
+                <Route path="booking" element={<BookingManagement />} />
+                <Route path="settings" element={<SystemSettings />} />
+              </Route>
+              
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </SystemProvider>
       </AuthProvider>
     </GoogleOAuthProvider>
   );

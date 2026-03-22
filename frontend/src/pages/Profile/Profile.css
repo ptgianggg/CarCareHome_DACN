@@ -161,51 +161,68 @@
   margin-top: 40px;
   display: flex;
   justify-content: flex-end;
-  gap: 15px;
-  padding-top: 30px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  align-items: center;
+  gap: 20px;
+  padding-top: 35px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
 }
 
 .btn-profile-save {
-  padding: 12px 30px;
-  background: linear-gradient(to right, #3b82f6, #2563eb);
+  padding: 14px 35px;
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
   color: white;
   border: none;
   border-radius: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.5px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+  gap: 12px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 20px -5px rgba(56, 189, 248, 0.4);
 }
 
 .btn-profile-save:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px -5px rgba(56, 189, 248, 0.6);
+  background: linear-gradient(135deg, #7dd3fc, #3b82f6);
 }
 
 .btn-profile-save:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
+}
+
+.btn-profile-save .btn-icon {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.3s ease;
+}
+
+.btn-profile-save:hover .btn-icon {
+  transform: translateX(4px);
 }
 
 .btn-profile-cancel {
-  padding: 12px 30px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
+  padding: 14px 35px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5e1;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   font-weight: 600;
+  font-size: 1.05rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .btn-profile-cancel:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #f1f5f9;
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Toast Notification (Simple) */

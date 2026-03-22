@@ -73,6 +73,7 @@ public class AuthService {
         response.put("name", savedUser.getName());
         response.put("email", savedUser.getEmail());
         response.put("role", savedUser.getRole().getName());
+        response.put("avatar", savedUser.getAvatar());
         response.put("message", "Đăng ký thành công!");
         return response;
     }
@@ -96,6 +97,7 @@ public class AuthService {
         response.put("name", user.getName());
         response.put("email", user.getEmail());
         response.put("role", user.getRole().getName());
+        response.put("avatar", user.getAvatar());
         response.put("token", token); // ← Trả về JWT Access Token
 
         response.put("message", "Đăng nhập thành công!");
@@ -139,6 +141,7 @@ public class AuthService {
                 response.put("name", user.getName());
                 response.put("email", user.getEmail());
                 response.put("role", user.getRole().getName());
+                response.put("avatar", user.getAvatar());
                 response.put("token", token);
                 response.put("message", "Đăng nhập Google thành công!");
                 return response;

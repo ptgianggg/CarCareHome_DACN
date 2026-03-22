@@ -4,13 +4,14 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import com.carcarehome.backend.dto.BookingRequest;
 import com.carcarehome.backend.entity.Booking;
 import com.carcarehome.backend.repository.BookingRepository;
 
 @Service
-
+@Transactional
 public class BookingService {
     @Autowired
     private BookingRepository bookingRepository;
@@ -52,19 +53,49 @@ public class BookingService {
         booking.setCustomerName(request.getCustomerName());
         booking.setCustomerPhone(request.getCustomerPhone());
         booking.setCustomerEmail(request.getCustomerEmail());
-        booking.setVehicleType(request.getVehicleType());
-        booking.setVehiclePlate(request.getVehiclePlate());
-        booking.setServiceType(request.getServiceType());
+        
+        // Handle multiple items
+        if (request.getItems() != null && !request.getItems().isEmpty()) {
+            booking.getItems().clear();
+            StringBuilder services = new StringBuilder();
+            
+            for (int i = 0; i < request.getItems().size(); i++) {
+                com.carcarehome.backend.dto.BookingItemRequest itemReq = request.getItems().get(i);
+                com.carcarehome.backend.entity.BookingItem item = new com.carcarehome.backend.entity.BookingItem();
+                item.setVehicleType(itemReq.getVehicleType());
+                item.setVehiclePlate(itemReq.getVehiclePlate());
+                item.setServiceType(itemReq.getServiceType());
+                item.setPrice(itemReq.getPrice());
+                booking.addItem(item);
+                
+                if (i > 0) services.append(" | ");
+                services.append(itemReq.getServiceType());
+                
+                // For backward compatibility / display, use the first vehicle as primary
+                if (i == 0) {
+                    booking.setVehicleType(itemReq.getVehicleType());
+                    booking.setVehiclePlate(itemReq.getVehiclePlate());
+                }
+            }
+            booking.setServiceType(services.toString());
+        } else {
+            // Fallback for single car legacy requests
+            booking.setVehicleType(request.getVehicleType());
+            booking.setVehiclePlate(request.getVehiclePlate());
+            booking.setServiceType(request.getServiceType());
+        }
+
         booking.setBookingDate(request.getBookingDate());
         booking.setBookingTime(request.getBookingTime());
         booking.setAddressName(request.getAddressName());
         booking.setNote(request.getNote());
         booking.setStatus(request.getStatus());
         booking.setTotalPrice(request.getTotalPrice());
-java.math.BigDecimal total =
-                request.getTotalPrice() != null ? request.getTotalPrice() : java.math.BigDecimal.ZERO;
-        java.math.BigDecimal deposit =
-                request.getDepositAmount() != null ? request.getDepositAmount() : java.math.BigDecimal.ZERO;
+        booking.setDistance(request.getDistance());
+        booking.setTravelFee(request.getTravelFee());
+        
+        java.math.BigDecimal total = request.getTotalPrice() != null ? request.getTotalPrice() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal deposit = request.getDepositAmount() != null ? request.getDepositAmount() : java.math.BigDecimal.ZERO;
 
         if (deposit.compareTo(java.math.BigDecimal.ZERO) < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tien coc khong duoc am");

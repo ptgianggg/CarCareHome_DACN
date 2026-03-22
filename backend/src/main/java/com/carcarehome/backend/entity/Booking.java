@@ -10,6 +10,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
 import lombok.Data;
 @Entity
@@ -60,11 +62,25 @@ public class Booking {
     @Column(name = "deposit_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal depositAmount;
 
+    @Column(name = "distance")
+    private Double distance;
+
+    @Column(name = "travel_fee", precision = 12, scale = 2)
+    private BigDecimal travelFee;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<BookingItem> items = new java.util.ArrayList<>();
+
+    public void addItem(BookingItem item) {
+        items.add(item);
+        item.setBooking(this);
+    }
     @PrePersist
     public void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -76,6 +92,9 @@ public class Booking {
         }
         if (depositAmount == null) {
             depositAmount = BigDecimal.ZERO;
+        }
+        if (travelFee == null) {
+            travelFee = BigDecimal.ZERO;
         }
         createdAt = now;
         updatedAt = now;

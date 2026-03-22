@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
     createService,
     deleteService,
@@ -6,21 +6,10 @@ import {
     updateService,
     getCategories,
 } from "../../services/api";
-import { NavLink } from "react-router-dom";
 import "./style.css";
 
-
+const ITEMS_PER_PAGE = 10;
 const LOCAL_IMAGE_MAP_KEY = "service_local_images";
-
-const emptyForm = {
-    name: "",
-    price: "",
-    duration: "",
-    category: "",
-    description: "",
-    images: [],
-    active: true,
-};
 
 function normalizeService(service) {
     return {
@@ -35,23 +24,43 @@ function normalizeService(service) {
     };
 }
 
+function formatPrice(value) {
+    return `${Number(value || 0).toLocaleString("vi-VN")} đ`;
+}
+
+const emptyForm = {
+    name: "",
+    price: "",
+    duration: "",
+    category: "",
+    description: "",
+    images: [],
+    active: true,
+};
+
 function ServiceManagement() {
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [categoryOptions, setCategoryOptions] = useState([]);
     const [form, setForm] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [detailService, setDetailService] = useState(null);
-    const [categoryOptions, setCategoryOptions] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("ALL");
+    const [isCatFilterOpen, setIsCatFilterOpen] = useState(false);
+    const [isCatFormOpen, setIsCatFormOpen] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const catFilterRef = useRef(null);
+    const catFormRef = useRef(null);
+
     const [localImageMap, setLocalImageMap] = useState(() => {
         try {
             const raw = localStorage.getItem(LOCAL_IMAGE_MAP_KEY);
             return raw ? JSON.parse(raw) : {};
-        } catch {
-            return {};
-        }
+        } catch { return {}; }
     });
 
     useEffect(() => {
@@ -60,6 +69,12 @@ function ServiceManagement() {
 
     useEffect(() => {
         fetchData();
+        const handleClickOutside = (e) => {
+            if (catFilterRef.current && !catFilterRef.current.contains(e.target)) setIsCatFilterOpen(false);
+            if (catFormRef.current && !catFormRef.current.contains(e.target)) setIsCatFormOpen(false);
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     async function fetchData() {
@@ -78,555 +93,332 @@ function ServiceManagement() {
         }
     }
 
-    const filteredServices = services.filter((svc) => {
-        const matchesSearch = svc.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory === "" || svc.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
-
-    function onChange(event) {
-        const { name, value } = event.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
-    }
-
-    function resetForm() {
-        setForm(emptyForm);
-        setEditingId(null);
-    }
-
-    function onAddClick() {
-        resetForm();
-        setIsFormOpen(true);
-    }
-
-    function closeForm() {
-        setIsFormOpen(false);
-        resetForm();
-    }
-
-    function closeDetailModal() {
-        setDetailService(null);
-    }
-
-    function formatPrice(value) {
-    return `${Number(value || 0).toLocaleString("vi-VN")} đ`;
-}
-
-function resolveImageUrl(service) {
-    if (service.images && service.images.length > 0) return service.images[0];
-    return localImageMap[String(service.id)]?.[0] || "";
-}
-
-function onImageChange(event) {
-    const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
-
-    files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            setForm((prev) => ({ 
-                ...prev, 
-                images: [...prev.images, String(reader.result || "")] 
-            }));
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-async function onSubmit(event) {
-    event.preventDefault();
-
-    const payload = {
-        name: form.name.trim(),
-        category: form.category.trim(),
-        description: form.description.trim(),
-        price: Number(form.price),
-        duration: Number(form.duration),
-        imageUrls: form.images.filter(img => !img.startsWith("data:")), // Keep existing ones
-        active: Boolean(form.active),
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await fetchData();
+        setTimeout(() => setIsRefreshing(false), 600);
     };
 
-    // New images will be handled by localImageMap for now as before, because backend doesn't handle base64 easily
-    // but wait, I should really implement real upload.
-    // However, let's stick to the user's "compact UI" request first.
+    const filteredServices = useMemo(() => {
+        return (services || []).filter((svc) => {
+            const matchesSearch = (svc.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (svc.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesCategory = selectedCategory === "ALL" || svc.category === selectedCategory;
+            return matchesSearch && matchesCategory;
+        });
+    }, [services, searchTerm, selectedCategory]);
 
-        if (
-            !payload.name ||
-            !payload.category ||
-            !payload.description ||
-            Number.isNaN(payload.price) ||
-            Number.isNaN(payload.duration) ||
-            payload.price <= 0 ||
-            payload.duration <= 0
-        ) {
-            alert("Vui long nhap day du thong tin hop le");
-            return;
-        }
+    const paginatedServices = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        return (filteredServices || []).slice(start, start + ITEMS_PER_PAGE);
+    }, [filteredServices, currentPage]);
+
+    const totalPages = Math.ceil((filteredServices || []).length / ITEMS_PER_PAGE);
+    useEffect(() => setCurrentPage(1), [searchTerm, selectedCategory]);
+
+    const summary = useMemo(() => ({
+        total: (services || []).length,
+        active: (services || []).filter(s => s.active).length,
+        premium: (services || []).filter(s => s.price > 500000).length
+    }), [services]);
+
+    function resolveImageUrl(service) {
+        if (service.images && service.images.length > 0) return service.images[0];
+        return localImageMap[String(service.id)]?.[0] || "";
+    }
+
+    function onImageChange(event) {
+        const files = Array.from(event.target.files || []);
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = () => setForm(p => ({ ...p, images: [...(p.images || []), String(reader.result)] }));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function onSubmit(event) {
+        event.preventDefault();
+        const payload = {
+            name: (form.name || "").trim(),
+            category: (form.category || "").trim(),
+            description: (form.description || "").trim(),
+            price: Number(form.price),
+            duration: Number(form.duration),
+            imageUrls: (form.images || []).filter(img => !img.startsWith("data:")),
+            active: Boolean(form.active),
+        };
+
+        if (!payload.name || !payload.category || !payload.price) return;
 
         try {
-            const result = editingId
-                ? await updateService(editingId, payload)
-                : await createService(payload);
-
-            if (result?.error) {
-                alert(result.message || "Khong the luu dich vu");
-                return;
-            }
-
+            const result = editingId ? await updateService(editingId, payload) : await createService(payload);
             const savedId = editingId || result?.id;
-            if (savedId && form.images.some(img => img.startsWith("data:"))) {
-                setLocalImageMap((prev) => ({
-                    ...prev,
-                    [String(savedId)]: form.images,
-                }));
+            if (savedId && (form.images || []).some(img => img.startsWith("data:"))) {
+                setLocalImageMap(prev => ({ ...prev, [String(savedId)]: form.images }));
             }
-
             await fetchData();
-            closeForm();
-        } catch (error) {
-            console.error("Save service error:", error);
-            alert("Co loi xay ra khi luu dich vu");
-        }
+            setIsFormOpen(false);
+            setForm(emptyForm);
+            setEditingId(null);
+        } catch (error) { console.error("Save error:", error); }
     }
 
     function onEdit(service) {
         setEditingId(service.id);
-        const currentImages = service.images && service.images.length > 0 
-            ? service.images 
-            : (localImageMap[String(service.id)] || []);
-
-        setForm({
-            name: service.name,
-            price: String(service.price),
-            duration: String(service.duration),
-            category: service.category,
-            description: service.description,
-            images: currentImages,
-            active: service.active,
-        });
+        const imgs = (service.images && service.images.length > 0) ? service.images : (localImageMap[String(service.id)] || []);
+        setForm({ ...service, images: imgs, price: String(service.price), duration: String(service.duration) });
         setIsFormOpen(true);
     }
 
     async function onDelete(id) {
-        if (!window.confirm("Ban co chac chan muon xoa dich vu nay?")) return;
-
+        if (!window.confirm("Xóa dịch vụ này?")) return;
         try {
             const ok = await deleteService(id);
-            if (!ok) {
-                alert("Xoa that bai");
-                return;
+            if (ok) {
+                setLocalImageMap(p => { const n = { ...p }; delete n[String(id)]; return n; });
+                await fetchData();
+                if (editingId === id) setIsFormOpen(false);
+                if (detailService?.id === id) setDetailService(null);
             }
-
-            setLocalImageMap((prev) => {
-                const next = { ...prev };
-                delete next[String(id)];
-                return next;
-            });
-
-            await fetchData();
-            if (editingId === id) closeForm();
-            if (detailService?.id === id) closeDetailModal();
-        } catch (error) {
-            console.error("Delete service error:", error);
-            alert("Khong the xoa dich vu");
-        }
+        } catch (error) { console.error(error); }
     }
 
-    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    // Dynamic but more compact grid system
+    const gridLayout = "2fr 1.2fr 80px 1.2fr 1fr 1fr";
 
     return (
-        <>
+        <div style={{ minHeight: '100%' }}>
             <header className="topbar">
                 <div>
-                    <p className="eyebrow">Dịch vụ</p>
-                    <h2>Quản lý danh mục dịch vụ</h2>
-                    <p className="topbar-copy">Tạo mới, cập nhật và quản lý các gói dịch vụ chăm sóc xe của trung tâm.</p>
+                    <p className="eyebrow" style={{ color: "var(--admin-primary)", opacity: 0.8 }}>CATALOG MANAGEMENT</p>
+                    <h2 style={{ fontSize: '2.8rem', fontWeight: '900', letterSpacing: '-0.04em', background: 'linear-gradient(to right, #fff, rgba(255,255,255,0.4))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Dịch Vụ CarCare</h2>
                 </div>
             </header>
 
-            <section className="service-layout">
-                <article className="panel service-table-panel">
-                    <div className="panel-heading">
-                        <div>
-                            <p className="eyebrow">Danh sách</p>
-                            <h3>Dịch vụ hiện có ({filteredServices.length})</h3>
-                        </div>
-                        <button type="button" className="primary-button add-btn" onClick={onAddClick}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            Thêm dịch vụ mới
-                        </button>
-                    </div>
+            <section className="stats-grid" style={{ marginBottom: '40px' }}>
+                <div className="stat-card" style={{ background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), transparent)', backdropFilter: 'blur(10px)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                    <p className="eyebrow">TỔNG DỊCH VỤ</p>
+                    <strong style={{ textShadow: '0 0 30px rgba(59, 130, 246, 0.4)' }}>{summary.total}</strong>
+                    <span style={{ opacity: 0.5 }}>Trong hệ thống</span>
+                </div>
+                <div className="stat-card" style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderLeft: '5px solid #10b981' }}>
+                    <p className="eyebrow">ĐANG HOẠT ĐỘNG</p>
+                    <strong style={{ color: '#10b981' }}>{summary.active}</strong>
+                    <span style={{ opacity: 0.5 }}>Sẵn sàng</span>
+                </div>
+                <div className="stat-card" style={{ background: 'rgba(139, 92, 246, 0.05)', border: '1px solid rgba(139, 92, 246, 0.2)', borderLeft: '5px solid #8b5cf6' }}>
+                    <p className="eyebrow">DỊCH VỤ CAO CẤP</p>
+                    <strong style={{ color: '#8b5cf6' }}>{summary.premium}</strong>
+                    <span style={{ opacity: 0.5 }}>Giá trên 500k</span>
+                </div>
+            </section>
 
-                    <div className="filter-bar">
-                        <div className="filter-search-wrapper">
-                            <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input
-                                type="text"
-                                className="filter-input"
-                                placeholder="Tìm kiếm theo tên dịch vụ..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        
-                        <div className="custom-dropdown-container">
-                            <div 
-                                className={`custom-select-trigger ${selectedCategory ? 'has-value' : ''}`}
-                                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                            >
-                                <span>{selectedCategory || "Tất cả danh mục"}</span>
-                                <svg className={`chevron ${showFilterDropdown ? 'open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <section className="service-layout">
+                <article className="panel" style={{ padding: '0', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', overflow: 'hidden' }}>
+
+                    <div className="panel-heading" style={{ padding: '30px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
+                        <div style={{ display: 'flex', gap: '20px', flex: 1, minWidth: '400px' }}>
+                            <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm dịch vụ..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ width: '100%', height: '60px', padding: '0 20px 0 55px', borderRadius: '18px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                                />
+                                <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: 'var(--admin-primary)' }}>
+                                    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                                </div>
                             </div>
-                            {showFilterDropdown && (
-                                <>
-                                    <div className="dropdown-overlay-fixed" onClick={() => setShowFilterDropdown(false)}></div>
-                                    <div className="custom-dropdown-list glass-morphism">
-                                        <div 
-                                            className={`dropdown-option ${selectedCategory === "" ? 'selected' : ''}`}
-                                            onClick={() => { setSelectedCategory(""); setShowFilterDropdown(false); }}
-                                        >
-                                            Tất cả danh mục
-                                        </div>
-                                        {categoryOptions.map((cat) => (
-                                            <div 
-                                                key={cat.id || cat.name} 
-                                                className={`dropdown-option ${selectedCategory === cat.name ? 'selected' : ''}`}
-                                                onClick={() => { setSelectedCategory(cat.name); setShowFilterDropdown(false); }}
-                                            >
+
+                            <div style={{ position: 'relative' }} ref={catFilterRef}>
+                                <div onClick={() => setIsCatFilterOpen(!isCatFilterOpen)} style={{ height: '60px', minWidth: '240px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', display: 'flex', alignItems: 'center', padding: '0 20px', cursor: 'pointer', userSelect: 'none' }}>
+                                    <span style={{ color: '#fff', fontWeight: '800', flex: 1 }}>{selectedCategory === "ALL" ? " Tất cả danh mục" : selectedCategory}</span>
+                                    <svg style={{ transform: isCatFilterOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', opacity: 0.5 }} width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3"><path d="m6 9 6 6 6-6" /></svg>
+                                </div>
+                                {isCatFilterOpen && (
+                                    <div style={{ position: 'absolute', top: '70px', width: '100%', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '18px', padding: '8px', zIndex: 100, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease' }}>
+                                        <div onClick={() => { setSelectedCategory("ALL"); setIsCatFilterOpen(false); }} style={{ padding: '14px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: selectedCategory === "ALL" ? '#3b82f6' : '#94a3b8', background: selectedCategory === "ALL" ? 'rgba(59, 130, 246, 0.1)' : 'transparent' }}> Tất cả danh mục</div>
+                                        {(categoryOptions || []).map(cat => (
+                                            <div key={cat.id} onClick={() => { setSelectedCategory(cat.name); setIsCatFilterOpen(false); }} style={{ padding: '14px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: selectedCategory === cat.name ? '#3b82f6' : '#94a3b8', background: selectedCategory === cat.name ? 'rgba(59, 130, 246, 0.1)' : 'transparent', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                {cat.icon && <img src={cat.icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />}
                                                 {cat.name}
                                             </div>
                                         ))}
                                     </div>
-                                </>
-                            )}
+                                )}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '15px' }}>
+                            <button onClick={handleRefresh} style={{ width: '60px', height: '60px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>
+                                <svg className={isRefreshing ? 'spinning' : ''} width="24" height="24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>
+                            </button>
+                            <button onClick={() => { setForm(emptyForm); setEditingId(null); setIsFormOpen(true); }} className="primary-button" style={{ height: '60px', padding: '0 25px', borderRadius: '18px', fontWeight: '900' }}>+ THÊM DỊCH VỤ</button>
                         </div>
                     </div>
 
-                    <div className="service-table">
-                        <div className="service-table-head">
+                    <div className="service-table" style={{ padding: '20px 0' }}>
+                        <div className="booking-index-head" style={{ padding: '20px 40px', background: 'transparent', opacity: 0.5, fontWeight: '800', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'grid', gridTemplateColumns: gridLayout }}>
                             <span>Tên dịch vụ</span>
-                            <span>Nhóm</span>
-                            <span>Mô tả</span>
-                            <span>Ảnh</span>
-                            <span>Giá tiền</span>
-                            <span>Thời gian</span>
-                            <span>Trạng thái</span>
-                            <span>Thao tác</span>
+                            <span style={{ textAlign: 'center' }}>Nhóm</span>
+                            <span style={{ textAlign: 'center' }}>Ảnh</span>
+                            <span style={{ textAlign: 'center' }}>Giá tiền</span>
+                            <span style={{ textAlign: 'center' }}>Trạng thái</span>
+                            <span style={{ textAlign: 'right' }}>Thao tác</span>
                         </div>
 
-                        {loading ? (
-                            <div className="table-loading">
-                                <span className="spinner"></span>
-                                <p>Đang tải dữ liệu...</p>
-                            </div>
-                        ) : null}
-
-                        {!loading &&
-                            filteredServices.map((service) => (
-                                <div
-                                    key={service.id}
-                                    className="service-table-row"
-                                    onDoubleClick={() => setDetailService(service)}
-                                >
-                                    <span className="font-bold">{service.name}</span>
-                                    <span className="cat-column">
-                                        {(() => {
-                                            const cat = categoryOptions.find(c => c.name === service.category);
-                                            return (
-                                                <div className="cat-with-icon">
-                                                    {cat?.icon && <img src={cat.icon} alt="" className="cat-row-icon" />}
-                                                    <span className="cat-badge">{service.category}</span>
-                                                </div>
-                                            );
-                                        })()}
-                                    </span>
-                                    <span className="service-description">{service.description}</span>
-                                    <span>
-                                        {resolveImageUrl(service) ? (
-                                            <img
-                                                className="service-thumb"
-                                                src={resolveImageUrl(service)}
-                                                alt={service.name}
-                                            />
-                                        ) : (
-                                            <span className="no-image-placeholder">N/A</span>
-                                        )}
-                                    </span>
-                                    <span className="price-text">{formatPrice(service.price)}</span>
-                                    <span>{service.duration} phút</span>
-                                    <span>
-                                        <span className={`status-badge ${service.active ? "active" : "inactive"}`}>
-                                            {service.active ? "Hoạt động" : "Tạm dừng"}
-                                        </span>
-                                    </span>
-                                    <span
-                                        className="row-actions"
-                                        onDoubleClick={(event) => event.stopPropagation()}
-                                    >
-                                        <button
-                                            type="button"
-                                            className="action-btn edit"
-                                            onClick={() => onEdit(service)}
-                                            title="Sửa"
-                                        >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="action-btn delete"
-                                            onClick={() => onDelete(service.id)}
-                                            title="Xóa"
-                                        >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                                        </button>
-                                    </span>
+                        {!loading && paginatedServices.map((svc) => (
+                            <div key={svc.id} className="booking-item-row" onDoubleClick={() => setDetailService(svc)} style={{ display: 'grid', gridTemplateColumns: gridLayout, padding: '22px 40px', alignItems: 'center', margin: '0 10px' }}>
+                                <span style={{ fontWeight: '800', fontSize: '1.2rem', color: '#fff' }}>{svc.name}</span>
+                                <div style={{ textAlign: 'center' }}>
+                                    <span className="cat-badge" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '6px 14px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '900', display: 'inline-block' }}>{svc.category}</span>
                                 </div>
-                            ))}
-
-                        {!loading && !services.length ? (
-                            <div className="empty-state">
-                                <p>Chưa có dịch vụ nào. Bấm "Thêm dịch vụ mới" để bắt đầu.</p>
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                    {resolveImageUrl(svc) ? <img src={resolveImageUrl(svc)} alt="" style={{ width: '54px', height: '54px', borderRadius: '14px', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.05)' }} /> : <div style={{ width: '54px', height: '54px', background: 'rgba(255,255,255,0.03)', borderRadius: '14px' }}></div>}
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <span style={{ fontWeight: '900', color: '#fff', fontSize: '1.2rem' }}>{formatPrice(svc.price)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                    <span className={`status ${svc.active ? 'success' : 'warning'}`} style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '0.65rem', minWidth: '100px', textAlign: 'center' }}>{svc.active ? "HOẠT ĐỘNG" : "TẠM DỪNG"}</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                    <button onClick={() => onEdit(svc)} style={{ width: '44px', height: '44px', background: 'rgba(255,255,255,0.05)', borderRadius: '14px', color: '#fff', border: 'none', cursor: 'pointer' }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg></button>
+                                    <button onClick={() => onDelete(svc.id)} style={{ width: '44px', height: '44px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '14px', color: '#ef4444', border: 'none', cursor: 'pointer' }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg></button>
+                                </div>
                             </div>
-                        ) : null}
+                        ))}
+                        {loading && !isRefreshing && <div style={{ padding: '100px', textAlign: 'center' }}><div className="spinner-heavy" style={{ margin: '0 auto' }}></div></div>}
                     </div>
+
+                    {!loading && totalPages > 1 && (
+                        <div style={{ padding: '30px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <p style={{ opacity: 0.4, fontSize: '0.9rem' }}>Hiển thị {paginatedServices.length} trong {filteredServices.length} dịch vụ</p>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => setCurrentPage(c => Math.max(1, c - 1))} style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer' }}>{"<"}</button>
+                                {[...Array(totalPages)].map((_, i) => (
+                                    <button key={i} onClick={() => setCurrentPage(i + 1)} style={{ width: '44px', height: '44px', borderRadius: '12px', background: currentPage === i + 1 ? '#3b82f6' : 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: '800' }}>{i + 1}</button>
+                                ))}
+                                <button onClick={() => setCurrentPage(c => Math.min(totalPages, c + 1))} style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: 'none', cursor: 'pointer' }}>{">"}</button>
+                            </div>
+                        </div>
+                    )}
                 </article>
             </section>
 
-            {isFormOpen ? (
-                <div className="service-modal-backdrop" onClick={closeForm}>
-                    <article className="panel service-modal glass-morphism" onClick={(event) => event.stopPropagation()}>
-                        <div className="modal-header">
-                            <div>
-                                <p className="eyebrow">{editingId ? "Cập nhật" : "Tạo mới"}</p>
-                                <h3>{editingId ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}</h3>
-                            </div>
-                            <button className="close-modal-btn" onClick={closeForm}>&times;</button>
+            {isFormOpen && (
+                <div className="service-modal-backdrop" style={{ background: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(15px)' }} onClick={() => setIsFormOpen(false)}>
+                    <article className="panel service-modal" style={{ maxWidth: '850px', width: '95%', padding: '0', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ padding: '35px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                            <p className="eyebrow" style={{ color: '#3b82f6', fontWeight: '900' }}>{editingId ? "CẬP NHẬT" : "TẠO MỚI"}</p>
+                            <h3 style={{ fontSize: '2rem', fontWeight: '900', margin: '5px 0' }}>{editingId ? "Chỉnh Sửa Dịch Vụ" : "Thêm Dịch Vụ Mới"}</h3>
                         </div>
 
-                        <form className="service-form" onSubmit={onSubmit}>
-                            <div className="form-grid">
-                                <label className="form-group">
-                                    Tên dịch vụ
-                                    <input
-                                        name="name"
-                                        value={form.name}
-                                        onChange={onChange}
-                                        placeholder="Ví dụ: Rửa xe cao cấp"
-                                        required
-                                    />
-                                </label>
+                        <form onSubmit={onSubmit} style={{ padding: '35px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <label className="form-group-label" style={{ display: 'block' }}>TÊN DỊCH VỤ <input name="name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} style={{ width: '100%', height: '54px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '0 20px', color: '#fff', marginTop: '8px' }} required /></label>
 
-                                <label className="form-group">
-                                    Giá dịch vụ (VNĐ)
-                                    <input
-                                        name="price"
-                                        type="number"
-                                        min="1000"
-                                        step="1000"
-                                        value={form.price}
-                                        onChange={onChange}
-                                        placeholder="Ví dụ: 150000"
-                                        required
-                                    />
-                                </label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                        <label className="form-group-label">GIÁ TIỀN (VNĐ) <input name="price" type="number" value={form.price} onChange={(e) => setForm(p => ({ ...p, price: e.target.value }))} style={{ width: '100%', height: '54px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '0 20px', color: '#fff', marginTop: '8px' }} required /></label>
+                                        <label className="form-group-label">THỜI GIAN (PHÚT) <input name="duration" type="number" value={form.duration} onChange={(e) => setForm(p => ({ ...p, duration: e.target.value }))} style={{ width: '100%', height: '54px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '0 20px', color: '#fff', marginTop: '8px' }} required /></label>
+                                    </div>
 
-                                <label className="form-group">
-                                    Thời gian ước tính (phút)
-                                    <input
-                                        name="duration"
-                                        type="number"
-                                        min="10"
-                                        step="5"
-                                        value={form.duration}
-                                        onChange={onChange}
-                                        placeholder="Ví dụ: 45"
-                                        required
-                                    />
-                                </label>
-
-                                <div className="form-group">
-                                    Danh mục dịch vụ
-                                    <div className="custom-dropdown-container">
-                                        <div 
-                                            className={`custom-select-trigger ${form.category ? 'has-value' : ''}`}
-                                            onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                                        >
-                                            <span>{form.category || "-- Chọn danh mục --"}</span>
-                                            <svg className={`chevron ${showCategoryDropdown ? 'open' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    <div style={{ position: 'relative' }} ref={catFormRef}>
+                                        <label className="form-group-label">DANH MỤC</label>
+                                        <div onClick={() => setIsCatFormOpen(!isCatFilterOpen)} style={{ height: '54px', width: '100%', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', marginTop: '8px', display: 'flex', alignItems: 'center', padding: '0 20px', cursor: 'pointer' }}>
+                                            <span style={{ color: form.category ? '#fff' : 'rgba(255,255,255,0.3)', fontWeight: '800' }}>{form.category || "Chọn danh mục..."}</span>
                                         </div>
-                                        {showCategoryDropdown && (
-                                            <>
-                                                <div className="dropdown-overlay-fixed" onClick={() => setShowCategoryDropdown(false)}></div>
-                                                <div className="custom-dropdown-list glass-morphism">
-                                                    {categoryOptions.map((cat) => (
-                                                        <div 
-                                                            key={cat.id || cat.name} 
-                                                            className={`dropdown-option ${form.category === cat.name ? 'selected' : ''}`}
-                                                            onClick={() => {
-                                                                setForm(prev => ({ ...prev, category: cat.name }));
-                                                                setShowCategoryDropdown(false);
-                                                            }}
-                                                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                                                        >
-                                                            {cat.icon && (
-                                                                <img 
-                                                                    src={cat.icon} 
-                                                                    alt="" 
-                                                                    style={{ width: '20px', height: '20px', objectFit: 'contain', borderRadius: '4px' }} 
-                                                                />
-                                                            )}
-                                                            {cat.name}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </>
+                                        {isCatFormOpen && (
+                                            <div style={{ position: 'absolute', top: '90px', width: '100%', background: '#0f172a', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '14px', padding: '5px', zIndex: 100 }}>
+                                                {(categoryOptions || []).map(cat => (
+                                                    <div key={cat.id} onClick={() => { setForm(p => ({ ...p, category: cat.name })); setIsCatFormOpen(false); }} style={{ padding: '12px 15px', borderRadius: '10px', cursor: 'pointer', background: form.category === cat.name ? 'rgba(59, 130, 246, 0.1)' : 'transparent', color: form.category === cat.name ? '#3b82f6' : '#fff' }}>{cat.name}</div>
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
 
-                                <label className="form-group full-width">
-                                    Mô tả dịch vụ
-                                    <textarea
-                                        name="description"
-                                        value={form.description}
-                                        onChange={onChange}
-                                        placeholder="Mô tả chi tiết các bước thực hiện..."
-                                        rows={4}
-                                        required
-                                    />
-                                </label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <label className="form-group-label">MÔ TẢ CHI TIẾT <textarea name="description" value={form.description} onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))} style={{ width: '100%', height: '142px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '15px 20px', color: '#fff', marginTop: '8px', resize: 'none' }} required /></label>
 
-                                <div className="form-group full-width">
-                                    <p className="field-label">Hình ảnh dịch vụ (Có thể chọn nhiều)</p>
-                                    <div className="image-grid-container">
-                                        {form.images.map((img, index) => (
-                                            <div key={index} className="image-preview-item">
-                                                <img src={img} alt={`Preview ${index}`} />
-                                                <button 
-                                                    type="button" 
-                                                    className="remove-image-btn"
-                                                    onClick={() => setForm(prev => ({ 
-                                                        ...prev, 
-                                                        images: prev.images.filter((_, i) => i !== index) 
-                                                    }))}
-                                                >
-                                                    &times;
-                                                </button>
-                                            </div>
-                                        ))}
-                                        <label className="compact-upload-box">
-                                            <input 
-                                                type="file" 
-                                                accept="image/*" 
-                                                multiple 
-                                                onChange={onImageChange} 
-                                                hidden 
-                                            />
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                            <span>Thêm ảnh</span>
-                                        </label>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '14px' }}>
+                                        <span style={{ fontWeight: '800' }}>TRẠNG THÁI HOẠT ĐỘNG</span>
+                                        <div onClick={() => setForm(p => ({ ...p, active: !p.active }))} style={{ width: '50px', height: '26px', background: form.active ? '#3b82f6' : 'rgba(255,255,255,0.1)', borderRadius: '13px', position: 'relative', cursor: 'pointer', padding: '3px', transition: '0.3s' }}>
+                                            <div style={{ width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transform: form.active ? 'translateX(24px)' : 'none', transition: '0.3s' }}></div>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <label className="toggle-label full-width">
-                                    <span>Trạng thái hoạt động</span>
-                                    <span className="switch">
-                                        <input
-                                            type="checkbox"
-                                            checked={form.active}
-                                            onChange={(event) =>
-                                                setForm((prev) => ({ ...prev, active: event.target.checked }))
-                                            }
-                                        />
-                                        <span className="slider" />
-                                    </span>
-                                </label>
                             </div>
 
-                            <div className="modal-actions">
-                                <button type="button" className="ghost-button" onClick={closeForm}>
-                                    Hủy bỏ
-                                </button>
-                                <button type="submit" className="primary-button submit-btn">
-                                    {editingId ? "Lưu thay đổi" : "Tạo dịch vụ ngay"}
-                                </button>
+                            <div style={{ marginTop: '30px' }}>
+                                <p className="eyebrow">HÌNH ẢNH DỊCH VỤ</p>
+                                <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginTop: '10px' }}>
+                                    {(form.images || []).map((img, i) => (
+                                        <div key={i} style={{ width: '100px', height: '100px', borderRadius: '14px', overflow: 'hidden', position: 'relative', border: '2px solid var(--admin-primary)' }}>
+                                            <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <button type="button" onClick={() => setForm(p => ({ ...p, images: p.images.filter((_, idx) => idx !== i) }))} style={{ position: 'absolute', top: 5, right: 5, width: 20, height: 20, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', borderRadius: '50%', cursor: 'pointer' }}>×</button>
+                                        </div>
+                                    ))}
+                                    <label style={{ width: '100px', height: '100px', borderRadius: '14px', border: '2px dashed rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.3)' }}>
+                                        <input type="file" accept="image/*" multiple onChange={onImageChange} hidden />
+                                        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12h14" /></svg>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '40px', display: 'flex', gap: '15px' }}>
+                                <button type="submit" className="primary-button" style={{ flex: 1, height: '54px' }}>LƯU DỊCH VỤ</button>
+                                <button type="button" onClick={() => setIsFormOpen(false)} className="ghost-button" style={{ height: '54px', padding: '0 30px' }}>HỦY</button>
                             </div>
                         </form>
                     </article>
                 </div>
-            ) : null}
+            )}
 
-            {detailService ? (
-                <div className="service-modal-backdrop" onClick={closeDetailModal}>
-                    <article className="panel service-modal detail-modal glass-morphism" onClick={(event) => event.stopPropagation()}>
-                        <div className="modal-header">
+            {detailService && (
+                <div className="service-modal-backdrop" style={{ background: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(15px)' }} onClick={() => setDetailService(null)}>
+                    <article className="panel service-modal" style={{ maxWidth: '850px', width: '95%', padding: '0', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ padding: '35px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between' }}>
                             <div>
-                                <p className="eyebrow">Chi tiết dịch vụ</p>
-                                <h3>{detailService.name}</h3>
+                                <p className="eyebrow" style={{ color: '#3b82f6', fontWeight: '900' }}>HỒ SƠ DỊCH VỤ</p>
+                                <h3 style={{ fontSize: '2.5rem', fontWeight: '900', margin: '5px 0' }}>{detailService.name}</h3>
                             </div>
-                            <button className="close-modal-btn" onClick={closeDetailModal}>&times;</button>
+                            <button onClick={() => setDetailService(null)} style={{ border: 'none', background: 'transparent', color: '#fff', fontSize: '2rem', cursor: 'pointer' }}>×</button>
                         </div>
-
-                        <div className="service-detail-content">
-                            <div className="detail-gallery">
-                                {detailService.images && detailService.images.length > 0 ? (
-                                    detailService.images.map((img, idx) => (
-                                        <div key={idx} className="detail-gallery-item">
-                                            <img src={img} alt={`${detailService.name} ${idx}`} />
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="no-image-big">Chưa có ảnh</div>
-                                )}
-                            </div>
-                            <div className="detail-info-grid">
-                                <div className="info-item">
-                                    <label>Danh mục</label>
-                                    <p>{detailService.category}</p>
+                        <div style={{ padding: '30px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                                <div>
+                                    <p className="eyebrow">🎨 HÌNH ẢNH</p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
+                                        {(detailService.images || []).map((img, i) => <img key={i} src={img} alt="" style={{ width: '100%', borderRadius: '14px' }} />)}
+                                    </div>
                                 </div>
-                                <div className="info-item">
-                                    <label>Giá dịch vụ</label>
-                                    <p className="price">{formatPrice(detailService.price)}</p>
-                                </div>
-                                <div className="info-item">
-                                    <label>Thời gian</label>
-                                    <p>{detailService.duration} phút</p>
-                                </div>
-                                <div className="info-item">
-                                    <label>Trạng thái</label>
-                                    <p>
-                                        <span className={`status-badge ${detailService.active ? "active" : "inactive"}`}>
-                                            {detailService.active ? "Đang hoạt động" : "Đang tạm dừng"}
-                                        </span>
-                                    </p>
-                                </div>
-                                <div className="info-item full-width">
-                                    <label>Mô tả chi tiết</label>
-                                    <div className="description-box">{detailService.description}</div>
+                                <div>
+                                    <p className="eyebrow">📊 THÔNG TIN</p>
+                                    <p><strong>Danh mục:</strong> {detailService.category}</p>
+                                    <p><strong>Thời gian:</strong> {detailService.duration} phút</p>
+                                    <p><strong>Trình trạng:</strong> {detailService.active ? "Đang cung cấp" : "Đã tạm dừng"}</p>
+                                    <div style={{ marginTop: '20px', padding: '20px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '18px' }}>
+                                        <p style={{ margin: 0, opacity: 0.6 }}>GIÁ NIÊM YẾT</p>
+                                        <h3 style={{ margin: 0, fontSize: '2rem', color: '#3b82f6' }}>{formatPrice(detailService.price)}</h3>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="modal-actions">
-                            <button
-                                type="button"
-                                className="primary-button"
-                                onClick={() => {
-                                    closeDetailModal();
-                                    onEdit(detailService);
-                                }}
-                            >
-                                Chỉnh sửa thông tin
-                            </button>
-                            <button type="button" className="ghost-button" onClick={closeDetailModal}>
-                                Đóng lại
-                            </button>
                         </div>
                     </article>
                 </div>
-            ) : null}
-        </>
+            )}
+
+            <style>{`
+                @keyframes spinning { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .spinning { animation: spinning 1s linear infinite; }
+                @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                .booking-item-row { transition: 0.2s; border-radius: 14px; }
+                .booking-item-row:hover { background: rgba(59, 130, 246, 0.05) !important; transform: translateX(5px); }
+            `}</style>
+        </div>
     );
 }
 
