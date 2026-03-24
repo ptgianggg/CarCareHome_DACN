@@ -18,4 +18,7 @@ public class BookingRequest {
     private String status;
     private BigDecimal totalPrice;
     private BigDecimal depositAmount;
+    private Double distance;
+    private BigDecimal travelFee;
+    private java.util.List<BookingItemRequest> items;
 }

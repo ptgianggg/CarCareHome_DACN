@@ -13,15 +13,42 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem("token");
 
     if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      
+      // Tự động quét lại Database ngầm trên Foreground để đồng bộ Avatar thật
+      import("@/services/api").then(({ getProfile }) => {
+        getProfile().then(data => {
+          if (data && data.avatar && data.avatar !== parsedUser.avatar) {
+            const updatedUser = { ...parsedUser, avatar: data.avatar, name: data.name || parsedUser.name };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        }).catch(() => {});
+      });
     }
     setLoading(false);
   }, []);
 
-  const login = (userData, token) => {
+  const login = async (userData, token) => {
     localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
+    
+    // Nếu quá trình Login từ backend trả về không chứa avatar, gọi ngay getProfile để vá lỗi ngầm
+    if (!userData.avatar) {
+      try {
+        const { getProfile } = await import("@/services/api");
+        const data = await getProfile();
+        if (data && data.avatar) {
+           const fullUser = { ...userData, avatar: data.avatar, name: data.name || userData.name };
+           setUser(fullUser);
+           localStorage.setItem("user", JSON.stringify(fullUser));
+        }
+      } catch (e) {
+        // im lặng
+      }
+    }
   };
 
   const logout = () => {

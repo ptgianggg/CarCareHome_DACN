@@ -1,19 +1,16 @@
-import { useEffect, useState } from "react";
-import {
-    getCategories,
-    fetchWithAuth,
-} from "../../services/api";
-import { NavLink } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
+import { getCategories, fetchWithAuth } from "../../services/api";
 import "./style.css";
-
 
 const emptyForm = {
     name: "",
+    icon: "",
 };
 
 function CategoryManagement() {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [form, setForm] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -36,46 +33,47 @@ function CategoryManagement() {
         }
     }
 
-    const filteredCategories = categories.filter((cat) =>
-        cat.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await fetchData();
+        setTimeout(() => setIsRefreshing(false), 600);
+    };
+
+    const filteredCategories = useMemo(() => {
+        return (categories || []).filter((cat) =>
+            (cat.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [categories, searchTerm]);
+
+    const summary = useMemo(() => ({
+        total: (categories || []).length,
+        withIcon: (categories || []).filter(c => c.icon).length
+    }), [categories]);
 
     function onChange(event) {
         const { name, value } = event.target;
         setForm((prev) => ({ ...prev, [name]: value }));
     }
 
-    function resetForm() {
-        setForm(emptyForm);
-        setEditingId(null);
-    }
-
-    function onAddClick() {
-        resetForm();
-        setIsFormOpen(true);
-    }
-
-    function closeForm() {
-        setIsFormOpen(false);
-        resetForm();
+    function onIconChange(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setForm((prev) => ({ ...prev, icon: reader.result }));
+            };
+            reader.readAsDataURL(file);
+        }
     }
 
     async function onSubmit(event) {
         event.preventDefault();
-
-        const payload = {
-            name: form.name.trim(),
-        };
-
-        if (!payload.name) {
-            alert("Vui lòng nhập tên danh mục");
-            return;
-        }
+        const payload = { name: (form.name || "").trim(), icon: form.icon };
+        if (!payload.name) return;
 
         try {
             const endpoint = editingId ? `/categories/${editingId}` : "/categories";
             const method = editingId ? "PUT" : "POST";
-
             const result = await fetchWithAuth(endpoint, {
                 method,
                 body: JSON.stringify(payload),
@@ -85,12 +83,12 @@ function CategoryManagement() {
                 alert(result.message || "Không thể lưu danh mục");
                 return;
             }
-
             await fetchData();
-            closeForm();
+            setIsFormOpen(false);
+            setForm(emptyForm);
+            setEditingId(null);
         } catch (error) {
             console.error("Save category error:", error);
-            alert("Có lỗi xảy ra khi lưu danh mục");
         }
     }
 
@@ -98,147 +96,169 @@ function CategoryManagement() {
         setEditingId(category.id);
         setForm({
             name: category.name || "",
+            icon: category.icon || "",
         });
         setIsFormOpen(true);
     }
 
     async function onDelete(id) {
-        if (!window.confirm("Bạn có chắc chắn muốn xóa danh mục này? Các dịch vụ thuộc danh mục này sẽ bị ẩn hoặc mất nhóm.")) return;
-
+        if (!window.confirm("Bạn có chắc chắn muốn xóa danh mục này?")) return;
         try {
-            const result = await fetchWithAuth(`/categories/${id}`, {
-                method: "DELETE",
-            });
-
+            const result = await fetchWithAuth(`/categories/${id}`, { method: "DELETE" });
             if (result?.error) {
                 alert(result.message || "Xóa thất bại");
                 return;
             }
-
             await fetchData();
-            if (editingId === id) closeForm();
         } catch (error) {
             console.error("Delete category error:", error);
-            alert("Không thể xóa danh mục");
         }
     }
 
     return (
-        <>
+        <div style={{ minHeight: '100%' }}>
             <header className="topbar">
                 <div>
-                    <p className="eyebrow">Danh mục</p>
-                    <h2>Quản lý danh mục dịch vụ</h2>
-                    <p className="topbar-copy">Quản lý các nhóm dịch vụ để dễ dàng phân loại và tìm kiếm.</p>
+                  <p className="eyebrow" style={{ color: "var(--admin-primary)", opacity: 0.8 }}>SYSTEM CATEGORIES</p>
+                  <h2 style={{ fontSize: '2.8rem', fontWeight: '900', letterSpacing: '-0.04em', background: 'linear-gradient(to right, #fff, rgba(255,255,255,0.4))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Danh Mục Dịch Vụ</h2>
                 </div>
             </header>
 
-            <nav className="admin-tabs">
-                <NavLink to="/admin/services" className={({ isActive }) => isActive ? "tab-item active" : "tab-item"}>
-                    Dịch vụ
-                </NavLink>
-                <NavLink to="/admin/categories" className={({ isActive }) => isActive ? "tab-item active" : "tab-item"}>
-                    Danh mục
-                </NavLink>
-            </nav>
+            <section className="stats-grid" style={{ marginBottom: '40px' }}>
+                <div className="stat-card" style={{ background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), transparent)', backdropFilter: 'blur(10px)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                    <p className="eyebrow">TỔNG DANH MỤC</p>
+                    <strong style={{ textShadow: '0 0 30px rgba(59, 130, 246, 0.4)' }}>{summary.total}</strong>
+                    <span style={{ opacity: 0.5 }}>Nhóm dịch vụ chính</span>
+                </div>
+                <div className="stat-card" style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderLeft: '5px solid #10b981' }}>
+                    <p className="eyebrow">CÓ BIỂU TƯỢNG</p>
+                    <strong style={{ color: '#10b981' }}>{summary.withIcon}</strong>
+                    <span style={{ opacity: 0.5 }}>Đã thiết lập Icon</span>
+                </div>
+            </section>
 
             <section className="service-layout">
-                <article className="panel service-table-panel">
-                    <div className="panel-heading">
-                        <div>
-                            <p className="eyebrow">Danh sách</p>
-                            <h3>Danh mục hiện có ({filteredCategories.length})</h3>
-                        </div>
-                        <button type="button" className="primary-button" onClick={onAddClick}>
-                            Thêm
-                        </button>
-                    </div>
-
-                    <div className="filter-bar">
-                        <input
-                            type="text"
-                            className="filter-input"
-                            placeholder="Tìm kiếm theo tên danh mục..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="service-table">
-                        <div className="category-table-head">
-                            <span>Tên danh mục</span>
-                            <span>Tác vụ</span>
-                        </div>
-
-                        {loading ? <p>Đang tải dữ liệu...</p> : null}
-
-                        {!loading &&
-                            filteredCategories.map((cat) => (
-                                <div key={cat.id} className="category-table-row">
-                                    <span style={{ fontWeight: "700" }}>{cat.name}</span>
-                                    <span className="row-actions">
-                                        <button
-                                            type="button"
-                                            className="ghost-button action-button"
-                                            onClick={() => onEdit(cat)}
-                                        >
-                                            Sửa
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="danger-button action-button"
-                                            onClick={() => onDelete(cat.id)}
-                                        >
-                                            Xóa
-                                        </button>
-                                    </span>
+                <article className="panel" style={{ padding: '0', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', overflow: 'hidden' }}>
+                    <div className="panel-heading" style={{ padding: '30px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', gap: '20px', flex: 1, maxWidth: '600px' }}>
+                            <div style={{ position: 'relative', flex: 1 }}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Tìm theo tên danh mục..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ 
+                                        width: '100%', 
+                                        height: '60px',
+                                        padding: '0 20px 0 55px', 
+                                        borderRadius: '18px', 
+                                        background: 'rgba(0,0,0,0.4)', 
+                                        border: '1px solid rgba(255,255,255,0.1)', 
+                                        color: '#fff',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                                <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: 'var(--admin-primary)' }}>
+                                    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                                 </div>
-                            ))}
-
-                        {!loading && !filteredCategories.length ? (
-                            <div className="empty-state">
-                                <p>Không tìm thấy danh mục nào. {categories.length === 0 ? "Bấm Thêm để tạo mới." : ""}</p>
                             </div>
-                        ) : null}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '15px' }}>
+                            <button 
+                                onClick={handleRefresh}
+                                style={{ width: '60px', height: '60px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}
+                            >
+                                <svg className={isRefreshing ? 'spinning' : ''} width="24" height="24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                            </button>
+                            <button 
+                                onClick={() => { setIsFormOpen(true); setEditingId(null); setForm(emptyForm); }}
+                                className="primary-button"
+                                style={{ height: '60px', padding: '0 30px', borderRadius: '18px', fontWeight: '900', fontSize: '0.9rem', letterSpacing: '0.05em' }}
+                            >
+                                + THÊM DANH MỤC
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="service-table" style={{ padding: '10px 0' }}>
+                        <div className="booking-index-head" style={{ padding: '20px 40px', background: 'transparent', opacity: 0.5, fontWeight: '800', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'grid', gridTemplateColumns: '80px 1fr 150px' }}>
+                            <span>Icon</span>
+                            <span>Tên danh mục</span>
+                            <span style={{ textAlign: 'right' }}>Thao tác</span>
+                        </div>
+
+                        {loading && !isRefreshing && <div style={{ padding: '100px', textAlign: 'center' }}><div className="spinner-heavy" style={{ margin: '0 auto' }}></div></div>}
+
+                        {!loading && filteredCategories.map((cat) => (
+                            <div key={cat.id} className="booking-item-row" style={{ display: 'grid', gridTemplateColumns: '80px 1fr 150px', padding: '22px 30px', alignItems: 'center', margin: '0 10px' }}>
+                                <span>
+                                    {cat.icon ? <img src={cat.icon} alt="" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '10px' }} /> : <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}></div>}
+                                </span>
+                                <span style={{ fontWeight: '800', fontSize: '1.2rem', color: '#fff' }}>{cat.name}</span>
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                    <button onClick={() => onEdit(cat)} style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '10px', color: '#fff', cursor: 'pointer' }}>
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    </button>
+                                    <button onClick={() => onDelete(cat.id)} style={{ width: '40px', height: '40px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '10px', color: '#ef4444', cursor: 'pointer' }}>
+                                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </article>
             </section>
 
-            {isFormOpen ? (
-                <div className="service-modal-backdrop" onClick={closeForm}>
-                    <article className="panel service-modal" onClick={(event) => event.stopPropagation()}>
-                        <div className="panel-heading">
-                            <div>
-                                <p className="eyebrow">{editingId ? "Cập nhật" : "Tạo mới"}</p>
-                                <h3>{editingId ? "Sửa danh mục" : "Thêm danh mục"}</h3>
-                            </div>
+            {isFormOpen && (
+                <div className="service-modal-backdrop" style={{ background: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(15px)' }} onClick={() => setIsFormOpen(false)}>
+                    <article className="panel service-modal" style={{ maxWidth: '600px', width: '90%', padding: '0', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)' }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ padding: '40px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                            <p className="eyebrow" style={{ color: '#3b82f6', fontWeight: '900' }}>{editingId ? "CẬP NHẬT" : "TẠO MỚI"}</p>
+                            <h3 style={{ fontSize: '2rem', fontWeight: '900', margin: '5px 0' }}>{editingId ? "Sửa Danh Mục" : "Thêm Danh Mục"}</h3>
                         </div>
-
-                        <form className="service-form" onSubmit={onSubmit}>
-                            <label>
-                                Tên danh mục
-                                <input
+                        
+                        <form onSubmit={onSubmit} style={{ padding: '40px' }}>
+                            <div style={{ marginBottom: '25px' }}>
+                                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '700', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem' }}>TÊN DANH MỤC</label>
+                                <input 
                                     name="name"
                                     value={form.name}
                                     onChange={onChange}
-                                    placeholder="Ví dụ: Bảo dưỡng định kỳ"
+                                    placeholder="Ví dụ: Bảo dưỡng, Rửa xe..."
+                                    style={{ width: '100%', height: '54px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '0 20px', color: '#fff' }}
                                     required
                                 />
-                            </label>
+                            </div>
 
-                            <div className="service-form-actions">
-                                <button type="submit" className="primary-button">
-                                    {editingId ? "Lưu thay đổi" : "Thêm danh mục"}
-                                </button>
-                                <button type="button" className="ghost-button" onClick={closeForm}>
-                                    Đóng
-                                </button>
+                            <div style={{ marginBottom: '40px' }}>
+                                <label style={{ display: 'block', marginBottom: '10px', fontWeight: '700', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem' }}>BIỂU TƯỢNG (ICON)</label>
+                                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                   <div style={{ width: '100px', height: '100px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '2px dashed rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                       {form.icon ? <img src={form.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <svg width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.2 }}><path d="M12 5v14M5 12h14"/></svg>}
+                                   </div>
+                                   <label style={{ flex: 1, height: '54px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#3b82f6', fontWeight: '800' }}>
+                                       <input type="file" accept="image/*" onChange={onIconChange} hidden />
+                                       {form.icon ? "Thay đổi Icon" : "Tải Icon lên"}
+                                   </label>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <button type="submit" className="primary-button" style={{ flex: 1, height: '54px', borderRadius: '14px' }}>LƯU DANH MỤC</button>
+                                <button type="button" onClick={() => setIsFormOpen(false)} className="ghost-button" style={{ flex: 1, height: '54px', borderRadius: '14px' }}>HỦY BỎ</button>
                             </div>
                         </form>
                     </article>
                 </div>
-            ) : null}
-        </>
+            )}
+            <style>{`
+                @keyframes spinning { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .spinning { animation: spinning 1s linear infinite; }
+                .booking-item-row { transition: 0.2s; border-radius: 14px; }
+                .booking-item-row:hover { background: rgba(59, 130, 246, 0.05) !important; transform: translateX(5px); }
+            `}</style>
+        </div>
     );
 }
 

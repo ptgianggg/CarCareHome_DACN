@@ -17,4 +17,7 @@ public class Category {
     @Column(nullable = false, unique = true)
     private String name;
 
+    @Column(columnDefinition = "LONGTEXT")
+    private String icon;
+
 }

@@ -530,7 +530,7 @@ input::-webkit-password-reveal-button {
 
 .input-wrapper input {
   width: 100%;
-  padding: 12px 14px 12px 42px;
+  padding: 14px 45px 14px 55px !important; /* Tăng padding trái để không đè icon ổ khoá */
   background: var(--input-bg);
   border: 1px solid var(--input-border);
   border-radius: var(--radius-sm);

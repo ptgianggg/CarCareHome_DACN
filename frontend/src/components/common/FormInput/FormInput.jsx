@@ -12,14 +12,16 @@ const FormInput = ({
   error, 
   touched, 
   onBlur,
-  required = false
+  required = false,
+  readOnly = false,
+  disabled = false
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
   return (
-    <div className={`input-group ${error && touched ? "has-error" : ""}`}>
+    <div className={`input-group ${error && touched ? "has-error" : ""} ${disabled ? "is-disabled" : ""}`}>
       {label && <label htmlFor={name}>{label}{required && <span className="required">*</span>}</label>}
       
       <div className="input-wrapper">
@@ -34,6 +36,8 @@ const FormInput = ({
           value={value}
           onChange={onChange}
           onBlur={onBlur}
+          readOnly={readOnly}
+          disabled={disabled}
           placeholder={placeholder}
           className="auth-input"
         />

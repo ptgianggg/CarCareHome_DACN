@@ -33,9 +33,16 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints - không cần token
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/services/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/categories/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/system-settings").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/system-settings/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 
                 // Phân quyền cho Admin
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/uploads/**").hasRole("ADMIN")
+                .requestMatchers("/api/system-settings/**").hasRole("ADMIN") // For POST/PUT
                 
                 // Phân quyền cho Manager
                 .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")

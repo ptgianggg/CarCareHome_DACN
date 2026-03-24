@@ -1,66 +1,42 @@
 import { useAuth } from "@/context/AuthContext";
 import "./Home.css";
+import defaultBannerImg from "@/assets/banner.png";
+import { useNavigate } from "react-router-dom";
+import { useSystem } from "@/context/SystemContext";
 
 function Home() {
   const { user } = useAuth();
+  const { settings } = useSystem();
+  const navigate = useNavigate();
+
+  const getImageUrl = (url) => {
+    if (!url) return defaultBannerImg;
+    if (url.startsWith('http')) return url;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    return `${baseUrl}${url}`;
+  };
+
+  const bannerImg = getImageUrl(settings?.bannerUrl);
 
   return (
     <div className="home-wrapper">
-      <section className="welcome-section">
-        {/* ... existing content ... */}
-        <div className="welcome-content">
-          <span className="welcome-badge">Chào mừng trở lại</span>
-          <h1>Xin chào, <span>{user?.name}</span>!</h1>
-          <p>Hệ thống chăm sóc xe hơi thông minh đã sẵn sàng phục vụ bạn.</p>
-          
-          <div className="quick-actions">
-            <button className="action-btn primary">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Đặt lịch ngay
-            </button>
-            <button className="action-btn secondary">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/></svg>
-              Xem dịch vụ
-            </button>
+      <section className="hero-section">
+        <div className="hero-container">
+          <img src={bannerImg} alt="Car Care Banner" className="hero-banner-img" />
+          <div className="hero-overlay">
+            <div className="hero-text-content">
+              {settings?.bannerTitle && <h1>{settings.bannerTitle}</h1>}
+              {settings?.bannerSubtitle && <p>{settings.bannerSubtitle}</p>}
+              
+              <button className="banner-cta-btn" onClick={() => navigate(settings?.bannerButtonLink || "/booking")}>
+                <span>{settings?.bannerButtonText || "Đặt lịch ngay"}</span>
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12h14m-7-7 7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
-        
-        <div className="welcome-image">
-           <div className="glass-card main-stats">
-              <div className="stat-item">
-                <span className="stat-value">03</span>
-                <span className="stat-label">Lịch hẹn sắp tới</span>
-              </div>
-              <div className="stat-divider"></div>
-              <div className="stat-item">
-                <span className="stat-value">VIP</span>
-                <span className="stat-label">Hạng thành viên</span>
-              </div>
-           </div>
-        </div>
-      </section>
-
-      <section className="dashboard-grid">
-         <div className="dashboard-card">
-            <h3>Thông tin tài khoản</h3>
-            <div className="user-details">
-               <div className="user-detail-item">
-                  <label>Email</label>
-                  <span>{user?.email}</span>
-               </div>
-               <div className="user-detail-item">
-                  <label>Vai trò</label>
-                  <span className="role-chip">{user?.role}</span>
-               </div>
-            </div>
-         </div>
-         
-         <div className="dashboard-card">
-            <h3>Lịch sử hoạt động</h3>
-            <div className="empty-state">
-               <p>Chưa có dữ liệu hoạt động gần đây.</p>
-            </div>
-         </div>
       </section>
     </div>
   );

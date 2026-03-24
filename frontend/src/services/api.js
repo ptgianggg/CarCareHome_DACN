@@ -77,7 +77,128 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
     return;
   }
 
+  let data = {};
+  try {
+      data = await res.json();
+  } catch (e) {
+      data = { message: res.statusText };
+  }
+
+  if (!res.ok) {
+      return { 
+          error: true, 
+          message: data.message || data.error || res.statusText,
+          status: res.status 
+      };
+  }
+
+  return data;
+};
+
+// ============================================================
+// PROFILE APIs (PROTECTED)
+// ============================================================
+export const getProfile = async () => {
+  return fetchWithAuth("/users/profile", {
+    method: "GET"
+  });
+};
+
+export const updateProfile = async (userData) => {
+  return fetchWithAuth("/users/profile", {
+    method: "PUT",
+    body: JSON.stringify(userData)
+  });
+};
+
+export const uploadAvatar = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_URL}/users/profile/avatar`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getToken()}`
+      // Không set Content-Type để trình duyệt tự nhận diện multipart/form-data
+    },
+    body: formData
+  });
+
+  if (res.status === 401) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+    return;
+  }
+
   return res.json();
+};
+
+// ============================================================
+// BOOKING & SERVICES APIs
+// ============================================================
+export const getServices = async () => {
+  const res = await fetch(`${API_URL}/services`);
+  return res.json();
+};
+
+export const getServiceById = async (id) => {
+  const res = await fetch(`${API_URL}/services/${id}`);
+  return res.json();
+};
+
+export const getCategories = async () => {
+  const res = await fetch(`${API_URL}/categories`);
+  return res.json();
+};
+
+export const createBooking = async (bookingData) => {
+  return fetchWithAuth("/booking", {
+    method: "POST",
+    body: JSON.stringify(bookingData)
+  });
+};
+
+export const getBookings = async () => {
+  return fetchWithAuth("/booking", {
+    method: "GET"
+  });
+};
+
+export const getMyBookings = async (email) => {
+  return fetchWithAuth(`/booking/user?email=${email}`, {
+    method: "GET"
+  });
+};
+
+export const createService = async (serviceData) => {
+  return fetchWithAuth("/services", {
+    method: "POST",
+    body: JSON.stringify(serviceData)
+  });
+};
+
+export const updateService = async (id, serviceData) => {
+  return fetchWithAuth(`/services/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(serviceData)
+  });
+};
+
+export const deleteService = async (id) => {
+  const res = await fetch(`${API_URL}/services/${id}`, {
+    method: "DELETE",
+    headers: authHeaders()
+  });
+  
+  if (res.status === 401) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+    return false;
+  }
+  
+  return res.ok;
 };
 
 // Logout: xoá token và user khỏi localStorage

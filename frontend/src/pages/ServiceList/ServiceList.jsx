@@ -1,57 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { getServices } from "../../services/api";
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { getServices, getCategories } from "../../services/api";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import "./style.css";
 
-const LOCAL_IMAGE_MAP_KEY = "service_local_images";
 const API_BASE_URL = "http://localhost:8080";
-const FALLBACK_IMAGE =
-    "https://images.unsplash.com/photo-1520340356584-f9d60d106df9?auto=format&fit=crop&q=80&w=400";
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1520340356584-f9d60d106df9?auto=format&fit=crop&q=80&w=400";
 
-function ServiceImage({ service, localImageMap }) {
-    const rawImage = (localImageMap[String(service.id)] || service.imageUrl || "").trim();
-
-    const candidates = [];
-    if (rawImage) {
-        if (rawImage.startsWith("data:") || rawImage.startsWith("http")) {
-            candidates.push(rawImage);
-        } else if (rawImage.startsWith("/")) {
-            candidates.push(`${API_BASE_URL}${rawImage}`);
-            candidates.push(`${API_BASE_URL}/uploads${rawImage}`);
-        } else {
-            candidates.push(`${API_BASE_URL}/${rawImage}`);
-            candidates.push(`${API_BASE_URL}/uploads/${rawImage}`);
-            candidates.push(`${API_BASE_URL}/images/${rawImage}`);
-            candidates.push(new URL(`../../assets/images/${rawImage}`, import.meta.url).href);
-        }
-    }
-    candidates.push(FALLBACK_IMAGE);
-
-    const [index, setIndex] = useState(0);
-
-    useEffect(() => {
-        setIndex(0);
-    }, [rawImage, service.id]);
-
-    return (
-        <img
-            src={candidates[Math.min(index, candidates.length - 1)]}
-            alt={service.name}
-            onError={() => {
-                setIndex((prev) => (prev < candidates.length - 1 ? prev + 1 : prev));
-            }}
-        />
-    );
-}
-const fallbackIcons = {
-    "Bảo dưỡng định kỳ": "https://cdn-icons-png.flaticon.com/512/1971/1971050.png",
-    "Chăm sóc": "https://cdn-icons-png.flaticon.com/512/2884/2884852.png",
-    "Rửa xe & Hút bụi": "https://cdn-icons-png.flaticon.com/512/5759/5759083.png",
-    "Sửa chữa": "https://cdn-icons-png.flaticon.com/512/3133/3133887.png",
-    "Thuê xe": "https://cdn-icons-png.flaticon.com/512/1879/1879007.png"
-};
 const ServiceList = () => {
     const [services, setServices] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -63,7 +19,7 @@ const ServiceList = () => {
 
     useEffect(() => {
         try {
-            const raw = localStorage.getItem(LOCAL_IMAGE_MAP_KEY);
+            const raw = localStorage.getItem("service_local_images");
             setLocalImageMap(raw ? JSON.parse(raw) : {});
         } catch {
             setLocalImageMap({});
@@ -74,7 +30,7 @@ const ServiceList = () => {
         const fetchAll = async () => {
             try {
                 const [catsRes, servsRes] = await Promise.all([
-                    import("../../services/api").then(m => m.getCategories()),
+                    getCategories(),
                     getServices()
                 ]);
                 setCategories(Array.isArray(catsRes) ? catsRes : []);
@@ -88,114 +44,173 @@ const ServiceList = () => {
         fetchAll();
     }, []);
 
+    const activeServices = useMemo(() => {
+        return services.filter(s => s.active !== false);
+    }, [services]);
+
+    const groupedServices = useMemo(() => {
+        let result = categories.map(cat => ({
+            ...cat,
+            items: activeServices.filter(s => s.category === cat.name)
+        })).filter(group => group.items.length > 0);
+
+        if (searchTerm.trim()) {
+            const lowerSearch = searchTerm.toLowerCase();
+            result = result.map(group => ({
+                ...group,
+                items: group.items.filter(item =>
+                    item.name.toLowerCase().includes(lowerSearch) ||
+                    (item.description && item.description.toLowerCase().includes(lowerSearch))
+                )
+            })).filter(group => group.items.length > 0);
+        }
+
+        if (categoryName) {
+            const decodedName = decodeURIComponent(categoryName);
+            result = result.filter(g => g.name === decodedName);
+        }
+
+        return result;
+    }, [categories, activeServices, searchTerm, categoryName]);
+
+    const resolveIcon = (service) => {
+        // 1. Kiểm tra list ảnh từ DB (imageUrls)
+        if (Array.isArray(service.imageUrls) && service.imageUrls.length > 0) {
+            const url = service.imageUrls[0];
+            return url.startsWith("http") ? url : `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+        }
+
+        // 2. Kiểm tra ảnh cũ (imageUrl) để tương thích ngược
+        if (service.imageUrl) {
+            return service.imageUrl.startsWith("http")
+                ? service.imageUrl
+                : `${API_BASE_URL}${service.imageUrl.startsWith("/") ? "" : "/"}${service.imageUrl}`;
+        }
+
+        // 3. Kiểm tra ảnh cục bộ (Local Storage)
+        const localImg = localImageMap[String(service.id)];
+        if (localImg) {
+            const firstLocal = Array.isArray(localImg) ? localImg[0] : localImg;
+            if (typeof firstLocal === "string" && firstLocal.startsWith("data:")) {
+                return firstLocal;
+            }
+        }
+
+        return FALLBACK_IMAGE;
+    };
+
     if (loading) {
         return (
             <div className="service-list-page">
                 <Header />
-                <div className="loading" style={{ minHeight: "50vh", display: "flex", justifyContent: "center", alignItems: "center" }}>Đang tải dịch vụ...</div>
+                <div className="loading-refined">
+                    <div className="spinner-heavy"></div>
+                    <p>Đang chuẩn bị danh sách dịch vụ...</p>
+                </div>
                 <Footer />
             </div>
         );
     }
-    // Group active services by dynamic categories
-    const activeServices = services.filter(s => s.active !== false);
-
-    let groupedServices = categories.map(cat => ({
-        title: cat.name,
-        icon: cat.icon,
-        id: cat.id,
-        items: activeServices.filter(s => s.category === cat.name)
-    })).filter(group => group.items.length > 0);
-
-    // Collect other categories not in the DB
-    const mappedCatNames = categories.map(c => c.name);
-    const otherItems = activeServices.filter(s => !mappedCatNames.includes(s.category));
-    if (otherItems.length > 0) {
-        groupedServices.push({
-            title: "Khác",
-            icon: "",
-            items: otherItems
-        });
-    }
-
-
-    // Filter by searchTerm
-    if (searchTerm.trim()) {
-        const lowerSearch = searchTerm.toLowerCase();
-        groupedServices = groupedServices.map(group => ({
-            ...group,
-            items: group.items.filter(item => item.name.toLowerCase().includes(lowerSearch))
-        })).filter(group => group.items.length > 0);
-    }
-
-    // Filter if categoryName exists in URL
-    if (categoryName) {
-        const decodedName = decodeURIComponent(categoryName);
-        groupedServices = groupedServices.filter(g => g.title === decodedName);
-    }
-
-    const resolveIcon = (service) => {
-        const localMapImg = localImageMap[String(service.id)];
-        if (localMapImg && localMapImg.startsWith("data:")) return localMapImg;
-        if (service.imageUrl) return `${API_BASE_URL}${service.imageUrl.startsWith('/') ? '' : '/'}${service.imageUrl}`;
-        return fallbackIcons[service.category] || FALLBACK_IMAGE;
-    };
 
     return (
-        <div className="service-list-page" style={{ backgroundColor: "#f3f4f6" }}>
+        <div className="service-list-page">
             <Header />
-            <div className="categories-layout">
-                <div className="category-top-bar">
-                    <button className="icon-btn" onClick={() => navigate(categoryName ? "/services" : "/home")}>←</button>
-                    <span className="title">{categoryName ? decodeURIComponent(categoryName) : "Tất cả dịch vụ"}</span>
-                    <div className="search-box-container">
+
+
+            {/* Sticky Category Nav */}
+            <div className="category-nav-wrapper">
+                <div className="category-nav-scroll">
+                    <div
+                        className={`cat-nav-item ${!categoryName ? 'active' : ''}`}
+                        onClick={() => navigate("/services")}
+                    >
+                        <span className="cat-nav-label">Tất cả</span>
+                    </div>
+                    {categories.map(cat => (
+                        <div
+                            key={cat.id}
+                            className={`cat-nav-item ${categoryName === encodeURIComponent(cat.name) ? 'active' : ''}`}
+                            onClick={() => navigate(`/services/${encodeURIComponent(cat.name)}`)}
+                        >
+                            {cat.icon && <img src={cat.icon} alt="" className="cat-nav-icon" />}
+                            <span className="cat-nav-label">{cat.name}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <main className="service-content-main">
+                {/* Search Bar */}
+                <div className="search-filter-section">
+                    <div className="search-input-group">
                         <input
                             type="text"
-                            className="list-search-input"
-                            placeholder="Tìm kiếm dịch vụ..."
+                            placeholder="Tìm kiếm dịch vụ bạn cần..."
+                            className="premium-search-input"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        {searchTerm && (
-                            <button className="clear-search-btn" onClick={() => setSearchTerm("")}>✕</button>
-                        )}
+                        <div className="search-icon-btn">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                        </div>
                     </div>
-                    <button className="icon-btn" onClick={() => navigate("/home")}>🏠</button>
                 </div>
 
                 {groupedServices.length === 0 ? (
-                    <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
-                        {searchTerm ? "Không tìm thấy dịch vụ nào khớp với từ khóa." : "Chưa có dịch vụ nào đang hoạt động."}
+                    <div className="loading-refined">
+                        <p>Không tìm thấy dịch vụ nào đang hoạt động trong mục này.</p>
+                        <button onClick={() => setSearchTerm("")} className="btn-solid" style={{ marginTop: '20px' }}>Hiện tất cả</button>
                     </div>
                 ) : null}
 
                 {groupedServices.map((cat, idx) => (
-                    <div className="category-section" key={idx} id={cat.title.replace(/\s+/g, '-').toLowerCase()}>
-                        <h2 className="cat-heading">
-                            {cat.icon && <img src={cat.icon} alt="" style={{ width: 24, height: 24, verticalAlign: 'middle', marginRight: 8 }} />}
-                            {cat.title}
-                        </h2>
-                        <div className="cat-grid">
-                            {cat.items.map((item) => (
+                    <div key={cat.id || idx} className="category-block" id={cat.name.replace(/\s+/g, '-').toLowerCase()}>
+                        <div className="block-header">
+                            {cat.icon && <img src={cat.icon} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />}
+                            <h2>{cat.name}</h2>
+                            <div style={{ flex: 1, height: '2px', background: 'linear-gradient(to right, #edf2f7, transparent)', marginLeft: '10px' }}></div>
+                        </div>
+
+                        <div className="services-grid-refined">
+                            {cat.items.map((service) => (
                                 <div
-                                    key={item.id}
-                                    className="cat-card"
-                                    onClick={() => navigate(`/services/detail/${item.id}`)}
+                                    key={service.id}
+                                    className="premium-card"
+                                    onClick={() => navigate(`/services/detail/${service.id}`)}
                                 >
-                                    <img src={resolveIcon(item)} alt={item.name} className="cat-icon" onError={(e) => { e.target.src = cat.icon || fallbackIcons[cat.title] || FALLBACK_IMAGE; }} />
-                                    <span className="cat-label">{item.name}</span>
+                                    <div className="card-image-wrap">
+                                        <img src={resolveIcon(service)} alt={service.name} />
+                                        <div className="badge-overlay">
+                                            <div className="price-badge-floating">
+                                                {Number(service.price).toLocaleString()} đ
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="card-body-modern">
+                                        <h3>{service.name}</h3>
+                                        <p className="desc">{service.description || "Dịch vụ chăm sóc xe chuyên nghiệp nhất tại Car Care Home."}</p>
+
+                                        <div className="card-footer-flex">
+                                            <div className="duration-info">
+                                                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="7" cy="7" r="6" /><path d="M7 3v4l2 2" /></svg>
+                                                <span>60-90 phút</span>
+                                            </div>
+                                            <div className="view-btn-circle">
+                                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7 7 7-7 7" /></svg>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 ))}
-            </div>
+            </main>
+
             <Footer />
         </div>
     );
 };
 
 export default ServiceList;
-
-
-
