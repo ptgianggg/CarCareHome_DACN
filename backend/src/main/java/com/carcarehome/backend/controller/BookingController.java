@@ -1,27 +1,32 @@
 package com.carcarehome.backend.controller;
+
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.carcarehome.backend.dto.BookingRequest;
 import com.carcarehome.backend.entity.Booking;
 import com.carcarehome.backend.service.BookingService;
+
 @RestController
 @RequestMapping({"/api/bookings", "/api/booking"})
 @CrossOrigin(origins = "*")
 public class BookingController {
+
     @Autowired
     private BookingService bookingService;
 
@@ -48,9 +53,27 @@ public class BookingController {
     public Booking createBooking(@RequestBody BookingRequest request) {
         return bookingService.createBooking(request);
     }
-@PutMapping("/{id}")
+
+    @PutMapping("/{id}")
     public Booking updateBooking(@PathVariable Long id, @RequestBody BookingRequest request) {
         return bookingService.updateBooking(id, request);
+    }
+
+    @GetMapping("/staff")
+    public List<Booking> getStaffBookings(@RequestParam String email) {
+        return bookingService.getBookingsByStaff(email);
+    }
+
+    @PutMapping("/{id}/assign")
+    public Booking assignStaff(@PathVariable Long id, @RequestParam Long staffId) {
+        return bookingService.assignStaff(id, staffId);
+    }
+
+    @PutMapping("/{id}/status")
+    public Booking updateStatusByStaff(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        String status = payload.get("status");
+        String proofImage = payload.get("proofImage");
+        return bookingService.updateStatusByStaff(id, status, proofImage);
     }
 
     @DeleteMapping("/{id}")
@@ -59,4 +82,11 @@ public class BookingController {
         bookingService.deleteBooking(id);
     }
 
+    @PutMapping("/{id}/review")
+    public Booking addReview(
+            @PathVariable Long id,
+            @RequestParam Integer rating,
+            @RequestParam(required = false) String comment) {
+        return bookingService.addReview(id, rating, comment);
+    }
 }

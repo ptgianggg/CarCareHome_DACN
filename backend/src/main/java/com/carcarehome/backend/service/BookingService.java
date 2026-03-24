@@ -1,4 +1,5 @@
 package com.carcarehome.backend.service;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -6,15 +7,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
 import com.carcarehome.backend.dto.BookingRequest;
 import com.carcarehome.backend.entity.Booking;
+import com.carcarehome.backend.entity.User;
+import com.carcarehome.backend.mapper.BookingMapper;
 import com.carcarehome.backend.repository.BookingRepository;
+import com.carcarehome.backend.repository.IUserRepository;
+import com.carcarehome.backend.state.BookingState;
+import com.carcarehome.backend.state.BookingStateFactory;
 
 @Service
 @Transactional
 public class BookingService {
+
     @Autowired
     private BookingRepository bookingRepository;
+
+    @Autowired
+    private IUserRepository userRepository;
+
+    @Autowired
+    private BookingMapper bookingMapper;
 
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
@@ -25,6 +39,13 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email khong duoc de trong");
         }
         return bookingRepository.findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(customerEmail.trim());
+    }
+
+    public List<Booking> getBookingsByStaff(String email) {
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email khong duoc de trong");
+        }
+        return bookingRepository.findByAssignedStaffEmailOrderByCreatedAtDesc(email.trim());
     }
 
     public Booking getBookingById(Long id) {
@@ -44,71 +65,84 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
+    public Booking assignStaff(Long bookingId, Long staffId) {
+        Booking booking = getBookingById(bookingId);
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new RuntimeException("Staff not found"));
+        booking.setAssignedStaff(staff);
+
+        if ("PENDING".equals(booking.getStatus()) || "STAFF_REJECT".equals(booking.getStatus())) {
+            BookingState currentState = BookingStateFactory.getState(booking.getStatus());
+            currentState.next(booking);
+        }
+
+        return bookingRepository.save(booking);
+    }
+
+    public Booking updateStatusByStaff(Long bookingId, String status, String proofImage) {
+        Booking booking = getBookingById(bookingId);
+        String requestedStatus = status == null ? "" : status.trim().toUpperCase();
+
+        BookingState currentState = BookingStateFactory.getState(booking.getStatus());
+
+        switch (requestedStatus) {
+            case "":
+            case "NEXT":
+                currentState.next(booking);
+                break;
+            case "CANCEL":
+                currentState.cancel(booking);
+                break;
+            case "REJECT":
+                currentState.reject(booking);
+                break;
+            case "IN_PROGRESS":
+                if ("SUCCESS".equals(booking.getStatus())) {
+                    currentState.next(booking);
+                } else {
+                    booking.setStatus(requestedStatus);
+                }
+                break;
+            case "COMPLETED":
+                if ("IN_PROGRESS".equals(booking.getStatus())) {
+                    currentState.next(booking);
+                } else {
+                    booking.setStatus(requestedStatus);
+                }
+                break;
+            default:
+                booking.setStatus(requestedStatus);
+                break;
+        }
+
+        if (proofImage != null && !proofImage.isBlank()) {
+            booking.setProofImage(proofImage);
+        }
+
+        return bookingRepository.save(booking);
+    }
+
     public void deleteBooking(Long id) {
         Booking booking = getBookingById(id);
         bookingRepository.delete(booking);
     }
 
+    public Booking addReview(Long bookingId, Integer rating, String comment) {
+        Booking booking = getBookingById(bookingId);
+
+        if (!"COMPLETED".equals(booking.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chi co the danh gia don hang da hoan tat");
+        }
+        if (rating == null || rating < 1 || rating > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "So sao danh gia phai tu 1 den 5");
+        }
+
+        booking.setRating(rating);
+        booking.setReviewComment(comment);
+        return bookingRepository.save(booking);
+    }
+
     private void mapRequestToEntity(BookingRequest request, Booking booking) {
-        booking.setCustomerName(request.getCustomerName());
-        booking.setCustomerPhone(request.getCustomerPhone());
-        booking.setCustomerEmail(request.getCustomerEmail());
-        
-        // Handle multiple items
-        if (request.getItems() != null && !request.getItems().isEmpty()) {
-            booking.getItems().clear();
-            StringBuilder services = new StringBuilder();
-            
-            for (int i = 0; i < request.getItems().size(); i++) {
-                com.carcarehome.backend.dto.BookingItemRequest itemReq = request.getItems().get(i);
-                com.carcarehome.backend.entity.BookingItem item = new com.carcarehome.backend.entity.BookingItem();
-                item.setVehicleType(itemReq.getVehicleType());
-                item.setVehiclePlate(itemReq.getVehiclePlate());
-                item.setServiceType(itemReq.getServiceType());
-                item.setPrice(itemReq.getPrice());
-                booking.addItem(item);
-                
-                if (i > 0) services.append(" | ");
-                services.append(itemReq.getServiceType());
-                
-                // For backward compatibility / display, use the first vehicle as primary
-                if (i == 0) {
-                    booking.setVehicleType(itemReq.getVehicleType());
-                    booking.setVehiclePlate(itemReq.getVehiclePlate());
-                }
-            }
-            booking.setServiceType(services.toString());
-        } else {
-            // Fallback for single car legacy requests
-            booking.setVehicleType(request.getVehicleType());
-            booking.setVehiclePlate(request.getVehiclePlate());
-            booking.setServiceType(request.getServiceType());
-        }
-
-        booking.setBookingDate(request.getBookingDate());
-        booking.setBookingTime(request.getBookingTime());
-        booking.setAddressName(request.getAddressName());
-        booking.setNote(request.getNote());
-        booking.setStatus(request.getStatus());
-        booking.setTotalPrice(request.getTotalPrice());
-        booking.setDistance(request.getDistance());
-        booking.setTravelFee(request.getTravelFee());
-        
-        java.math.BigDecimal total = request.getTotalPrice() != null ? request.getTotalPrice() : java.math.BigDecimal.ZERO;
-        java.math.BigDecimal deposit = request.getDepositAmount() != null ? request.getDepositAmount() : java.math.BigDecimal.ZERO;
-
-        if (deposit.compareTo(java.math.BigDecimal.ZERO) < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tien coc khong duoc am");
-        }
-
-        java.math.BigDecimal maxDeposit = total.multiply(new java.math.BigDecimal("0.5"));
-        if (deposit.compareTo(maxDeposit) > 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Tien coc khong duoc vuot qua 50% tong tien dich vu"
-            );
-        }
-
-        booking.setDepositAmount(deposit);
+        bookingMapper.mapRequestToEntity(request, booking);
     }
 }
