@@ -1,12 +1,57 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { CalendarClock, ChevronRight, Mail, MapPin, PhoneCall, ShieldCheck, Sparkles, Wrench } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import "./Footer.css";
 
 function Footer() {
+  const { user } = useAuth();
+
+  const quickLinks = useMemo(() => {
+    const links = [
+      { to: "/", label: "Trang chủ" },
+      { to: "/services", label: "Khám phá dịch vụ" },
+      { to: "/booking", label: "Đặt lịch tại nhà" }
+    ];
+
+    if (user) {
+      links.push({ to: "/my-bookings", label: "Theo dõi lịch hẹn" });
+      links.push({ to: "/profile", label: "Hồ sơ cá nhân" });
+    }
+
+    return links;
+  }, [user]);
+
+  const serviceHighlights = [
+    "Rửa xe cao cấp tại nhà",
+    "Vệ sinh khoang nội thất",
+    "Đánh bóng và phủ ceramic",
+    "Kiểm tra tổng quát theo lịch"
+  ];
+
+  const trustPoints = [
+    {
+      icon: ShieldCheck,
+      title: "Kỹ thuật viên rõ lịch",
+      description: "Thông tin lịch hẹn, thời gian và trạng thái thanh toán được đồng bộ trong tài khoản của bạn."
+    },
+    {
+      icon: Sparkles,
+      title: "Dịch vụ theo nhu cầu",
+      description: "Từ vệ sinh nhanh đến các gói chăm sóc chuyên sâu, bạn có thể chọn linh hoạt theo từng xe."
+    },
+    {
+      icon: Wrench,
+      title: "Trải nghiệm tại nhà",
+      description: "Đặt lịch nhanh, theo dõi tiến độ rõ ràng và hạn chế tối đa thao tác rời rạc khi sử dụng dịch vụ."
+    }
+  ];
+
   return (
     <footer className="main-footer">
-      <div className="footer-top">
-        <div className="footer-container">
-          <div className="footer-brand">
+      <div className="footer-container footer-grid">
+        <section className="footer-brand-panel surface-card">
+          <div className="footer-brand-top">
             <Link to="/" className="footer-logo">
               <div className="logo-icon">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -17,61 +62,105 @@ function Footer() {
                   <path d="M9 10H15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               </div>
-              <h2>CarCare<span>Home</span></h2>
+              <div>
+                <span className="footer-kicker">Car care at home</span>
+                <h2>CarCareHome</h2>
+              </div>
             </Link>
+
             <p className="brand-desc">
-              Hệ thống chăm sóc xe hơi thông minh, tận tâm và uy tín hàng đầu. Trải nghiệm dịch vụ chuyên nghiệp ngay tại ngôi nhà của bạn.
+              Nền tảng đặt lịch chăm sóc xe tại nhà với hành trình rõ ràng từ chọn dịch vụ,
+              thanh toán đến theo dõi lịch hẹn và đánh giá sau hoàn tất.
             </p>
-            <div className="social-links">
-              <a href="#" className="social-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg></a>
-              <a href="#" className="social-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg></a>
-              <a href="#" className="social-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z" /></svg></a>
-            </div>
           </div>
 
-          <div className="footer-links">
-            <h3>Dịch vụ</h3>
-            <ul>
-              <li><Link to="/services">Rửa xe cao cấp</Link></li>
-              <li><Link to="/services">Đánh bóng & Ceramic</Link></li>
-              <li><Link to="/services">Vệ sinh nội thất</Link></li>
-              <li><Link to="/services">Kiểm tra tổng quát</Link></li>
-            </ul>
+          <div className="footer-cta-row">
+            <Link to="/booking" className="footer-cta primary">
+              Đặt lịch ngay
+              <ChevronRight size={16} />
+            </Link>
+            <Link to={user ? "/my-bookings" : "/services"} className="footer-cta secondary">
+              {user ? "Xem lịch hẹn" : "Xem bảng dịch vụ"}
+            </Link>
           </div>
 
-          <div className="footer-links">
-            <h3>Hỗ trợ</h3>
-            <ul>
-              <li><Link to="/contact">Liên hệ</Link></li>
-              <li><Link to="/faq">Câu hỏi thường gặp</Link></li>
-              <li><Link to="/terms">Điều khoản sử dụng</Link></li>
-              <li><Link to="/privacy">Chính sách bảo mật</Link></li>
-            </ul>
+          <div className="footer-trust-grid">
+            {trustPoints.map(({ icon: Icon, title, description }) => (
+              <article key={title} className="footer-trust-item">
+                <span className="footer-trust-icon">
+                  <Icon size={18} />
+                </span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{description}</p>
+                </div>
+              </article>
+            ))}
           </div>
+        </section>
 
-          <div className="footer-contact">
-            <h3>Liên hệ</h3>
-            <div className="contact-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-              <span>Tp. Hồ Chí Minh, Việt Nam</span>
-            </div>
-            <div className="contact-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+        <section className="footer-column">
+          <p className="footer-column-title">Điều hướng nhanh</p>
+          <div className="footer-link-list">
+            {quickLinks.map((item) => (
+              <Link key={item.to} to={item.to} className="footer-link-item">
+                <ChevronRight size={14} />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="footer-column">
+          <p className="footer-column-title">Dịch vụ nổi bật</p>
+          <div className="footer-link-list compact">
+            {serviceHighlights.map((label) => (
+              <Link key={label} to="/services" className="footer-link-item muted">
+                <Sparkles size={14} />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="footer-column footer-contact-card surface-card">
+          <p className="footer-column-title">Liên hệ & hỗ trợ</p>
+
+          <div className="footer-contact-list">
+            <a className="footer-contact-item" href="tel:+84123456789">
+              <PhoneCall size={16} />
               <span>+84 123 456 789</span>
-            </div>
-            <div className="contact-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+            </a>
+            <a className="footer-contact-item" href="mailto:support@carcarehome.com">
+              <Mail size={16} />
               <span>support@carcarehome.com</span>
+            </a>
+            <div className="footer-contact-item">
+              <MapPin size={16} />
+              <span>TP. Hồ Chí Minh, phục vụ linh hoạt theo khu vực</span>
+            </div>
+            <div className="footer-contact-item">
+              <CalendarClock size={16} />
+              <span>Hỗ trợ đặt lịch mỗi ngày từ 8:00 đến 21:00</span>
             </div>
           </div>
-        </div>
+
+          <div className="footer-note">
+            <strong>Gợi ý nhanh</strong>
+            <p>
+              Nếu bạn đã có tài khoản, hãy vào mục lịch hẹn để theo dõi thanh toán, trạng thái xử lý và nhân viên phụ trách.
+            </p>
+          </div>
+        </section>
       </div>
 
-      <div className="footer-bottom">
-        <div className="footer-container">
-          <p>&copy; 2024 CarCareHome. Tất cả quyền được bảo lưu.</p>
-          <div className="footer-legal">
-            <span>Thiết kế bởi CarCare Team</span>
+      <div className="footer-bottom-bar">
+        <div className="footer-container footer-bottom-content">
+          <p>© {new Date().getFullYear()} CarCareHome. Trải nghiệm chăm sóc xe tại nhà được thiết kế gọn, rõ và đáng tin cậy.</p>
+          <div className="footer-bottom-links">
+            <Link to="/services">Bảng dịch vụ</Link>
+            <Link to="/booking">Đặt lịch</Link>
+            <Link to="/profile">Tài khoản</Link>
           </div>
         </div>
       </div>

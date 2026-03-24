@@ -1,12 +1,9 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { Toaster } from "react-hot-toast";
-
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SystemProvider } from "@/context/SystemContext";
+import { Toaster } from "react-hot-toast";
 import MainLayout from "@/layouts/MainLayout/MainLayout";
-import AdminLayout from "@/layouts/AdminLayout/AdminLayout";
-import StaffLayout from "@/layouts/StaffLayout/StaffLayout";
 import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
 import ForgotPassword from "@/pages/Auth/ForgotPassword";
@@ -17,31 +14,35 @@ import Booking from "@/pages/Booking/Booking";
 import MyBookings from "@/pages/MyBookings/MyBookings";
 import ServiceList from "@/pages/ServiceList/ServiceList";
 import ServiceDetail from "@/pages/ServiceDetail/ServiceDetail";
+import PaymentCallback from "@/pages/Booking/PaymentCallback";
 import ServiceManagement from "@/pages/Admin/Services";
 import CategoriesManagement from "@/pages/Admin/Categories";
 import BookingManagement from "@/pages/Admin/Bookings";
 import SystemSettings from "@/pages/Admin/SystemSettings";
-import LeaveManagement from "@/pages/Admin/LeaveManagement";
-import AccountManagement from "@/pages/Admin/AccountManagement";
+import AdminLayout from "@/layouts/AdminLayout/AdminLayout";
+import StaffLayout from "@/layouts/StaffLayout/StaffLayout";
 import MyTasks from "@/pages/Staff/MyTasks";
 import LeaveRequest from "@/pages/Staff/LeaveRequest";
+import LeaveManagement from "@/pages/Admin/LeaveManagement";
+import AccountManagement from "@/pages/Admin/AccountManagement";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const ProtectedRoute = ({ children, requiredRole }) => {
-  const { isAuthenticated, loading, isAdmin, isStaff } = useAuth();
-
+  const { isAuthenticated, loading, user, isAdmin } = useAuth();
+  
   if (loading) return null;
+  
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-
+  
   if (requiredRole === "ADMIN" && !isAdmin) {
     return <Navigate to="/" replace />;
   }
 
-  if (requiredRole === "STAFF" && !isStaff && !isAdmin) {
+  if (requiredRole === "STAFF" && user?.role !== "STAFF" && user?.role !== "ROLE_STAFF" && !isAdmin) {
     return <Navigate to="/" replace />;
   }
-
+  
   return children;
 };
 
@@ -49,10 +50,8 @@ function App() {
   if (!GOOGLE_CLIENT_ID) {
     return (
       <div style={{ color: "white", padding: "20px" }}>
-        <h2>Lỗi: Thiếu Google Client ID trong file .env</h2>
-        <p>
-          Vui lòng kiểm tra file <code>frontend/.env</code>
-        </p>
+        <h2>Lá»—i: Thiáº¿u Google Client ID trong file .env</h2>
+        <p>Vui lÃ²ng kiá»ƒm tra file <code>frontend/.env</code></p>
       </div>
     );
   }
@@ -64,73 +63,28 @@ function App() {
           <Toaster position="top-right" reverseOrder={false} />
           <BrowserRouter>
             <Routes>
+              {/* Trang cÃ´ng khai sá»­ dá»¥ng MainLayout */}
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<Home />} />
-                <Route
-                  path="profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="booking"
-                  element={
-                    <ProtectedRoute>
-                      <Booking />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="my-bookings"
-                  element={
-                    <ProtectedRoute>
-                      <MyBookings />
-                    </ProtectedRoute>
-                  }
-                />
+                <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
+                <Route path="my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+                <Route path="payment/callback" element={<PaymentCallback />} />
               </Route>
 
+              {/* CÃ¡c trang Auth */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-
-              <Route
-                path="/services"
-                element={
-                  <ProtectedRoute>
-                    <ServiceList />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/services/:categoryName"
-                element={
-                  <ProtectedRoute>
-                    <ServiceList />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/services/detail/:id"
-                element={
-                  <ProtectedRoute>
-                    <ServiceDetail />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute requiredRole="ADMIN">
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Navigate to="booking" replace />} />
+              
+              {/* CÃ¡c trang dá»‹ch vá»¥ */}
+              <Route path="/services" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
+              <Route path="/services/:categoryName" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
+              <Route path="/services/detail/:id" element={<ProtectedRoute><ServiceDetail /></ProtectedRoute>} />
+              
+              {/* CÃ¡c trang Admin */}
+              <Route path="/admin" element={<ProtectedRoute requiredRole="ADMIN"><AdminLayout /></ProtectedRoute>}>
                 <Route path="services" element={<ServiceManagement />} />
                 <Route path="categories" element={<CategoriesManagement />} />
                 <Route path="booking" element={<BookingManagement />} />
@@ -139,20 +93,14 @@ function App() {
                 <Route path="settings" element={<SystemSettings />} />
               </Route>
 
-              <Route
-                path="/staff"
-                element={
-                  <ProtectedRoute requiredRole="STAFF">
-                    <StaffLayout />
-                  </ProtectedRoute>
-                }
-              >
+              {/* CÃ¡c trang Staff */}
+              <Route path="/staff" element={<ProtectedRoute requiredRole="STAFF"><StaffLayout /></ProtectedRoute>}>
                 <Route index element={<Navigate to="tasks" replace />} />
                 <Route path="tasks" element={<MyTasks />} />
                 <Route path="leave" element={<LeaveRequest />} />
-                <Route path="profile" element={<Profile />} />
               </Route>
 
+              
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </BrowserRouter>
@@ -163,3 +111,4 @@ function App() {
 }
 
 export default App;
+

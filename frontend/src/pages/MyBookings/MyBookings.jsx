@@ -1,20 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Calendar,
-  Car,
-  Camera,
-  ChevronRight,
-  Clock,
-  MapPin,
-  Package,
-  Star,
-  UserCheck,
-} from "lucide-react";
-import toast from "react-hot-toast";
-
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { addReview, getMyBookings, updateBookingStatus } from "@/services/api";
-
+import { getMyBookings, addReview, updateBookingStatus } from "@/services/api";
+import { 
+  Calendar, 
+  MapPin, 
+  Car, 
+  Clock, 
+  ChevronRight, 
+  Package, 
+  CreditCard,
+  Star,
+  Camera,
+  UserCheck
+} from "lucide-react";
+import toast from 'react-hot-toast';
 import "./MyBookings.css";
 
 const MyBookings = () => {
@@ -23,14 +22,10 @@ const MyBookings = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedBooking, setSelectedBooking] = useState(null);
+  
   const [revRating, setRevRating] = useState(0);
   const [revComment, setRevComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
-
-  const apiBaseUrl =
-    import.meta.env.VITE_API_BASE_URL ||
-    import.meta.env.VITE_API_URL?.replace("/api", "") ||
-    "http://localhost:8080";
 
   useEffect(() => {
     if (user?.email) {
@@ -38,23 +33,15 @@ const MyBookings = () => {
     }
   }, [user]);
 
-  useEffect(() => {
-    setRevRating(selectedBooking?.rating || 0);
-    setRevComment(selectedBooking?.reviewComment || "");
-  }, [selectedBooking]);
-
   const fetchUserBookings = async () => {
     setLoading(true);
     try {
       const data = await getMyBookings(user.email);
       if (Array.isArray(data)) {
         setBookings(data);
-      } else {
-        setBookings([]);
       }
     } catch (error) {
       console.error("Fetch my bookings failed:", error);
-      setBookings([]);
     } finally {
       setLoading(false);
     }
@@ -65,92 +52,77 @@ const MyBookings = () => {
       toast.error("Vui lòng chọn số sao đánh giá");
       return;
     }
-
     setSubmittingReview(true);
     try {
       const result = await addReview(id, revRating, revComment);
       if (result?.error) {
-        throw new Error(result.message);
+        toast.error(result.message || "Gửi đánh giá thất bại");
+        return;
       }
-
       toast.success("Cảm ơn bạn đã đánh giá dịch vụ!");
-      await fetchUserBookings();
-      setSelectedBooking((prev) =>
-        prev
-          ? {
-              ...prev,
-              rating: revRating,
-              reviewComment: revComment,
-            }
-          : prev
-      );
-    } catch {
-      toast.error("Gửi đánh giá thất bại");
+      fetchUserBookings(); 
+      setSelectedBooking(prev => ({...prev, rating: revRating, reviewComment: revComment}));
+    } catch (error) {
+      console.error("Error sending review:", error);
+      toast.error("Lỗi hệ thống khi gửi đánh giá");
     } finally {
       setSubmittingReview(false);
     }
   };
 
   const handleCancelBooking = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy lịch hẹn này?")) return;
-
-    try {
-      const result = await updateBookingStatus(id, "CANCEL");
-      if (result?.error) {
-        throw new Error(result.message);
+    if (window.confirm("Bạn có chắc chắn muốn hủy lịch hẹn này?")) {
+      try {
+        const result = await updateBookingStatus(id, 'CANCEL');
+        if (result?.error) {
+          toast.error(result.message || "Lỗi khi hủy lịch hẹn");
+          return;
+        }
+        toast.success("Đã hủy lịch hẹn thành công");
+        fetchUserBookings();
+        setSelectedBooking(null);
+      } catch (error) {
+        console.error("Error cancelling booking:", error);
+        toast.error("Lỗi kết nối khi hủy lịch hẹn");
       }
-
-      toast.success("Đã hủy lịch hẹn thành công");
-      await fetchUserBookings();
-      setSelectedBooking(null);
-    } catch {
-      toast.error("Lỗi khi hủy lịch hẹn");
     }
   };
 
   const getStatusBadge = (status) => {
-    const normalized = String(status || "").toUpperCase();
-    if (normalized === "PENDING" || normalized === "STAFF_REJECT") return "status-pending";
-    if (normalized === "COMPLETED") return "status-success";
-    if (normalized === "CANCEL") return "status-error";
+    const s = String(status || "").toUpperCase();
+    if (s.includes("PENDING")) return "status-pending";
+    if (s.includes("SUCCESS") || s.includes("COMPLETED")) return "status-success";
+    if (s.includes("CANCEL") || s.includes("REJECT")) return "status-error";
+    if (s.includes("IN_PROGRESS")) return "status-active";
     return "status-active";
   };
 
-  const filteredBookings = useMemo(
-    () =>
-      bookings.filter((booking) => {
-        const normalized = String(booking.status || "").toUpperCase();
-
-        if (activeTab === "pending") {
-          return normalized !== "COMPLETED" && normalized !== "CANCEL";
-        }
-        if (activeTab === "success") {
-          return normalized === "COMPLETED";
-        }
-        if (activeTab === "cancel") {
-          return normalized === "CANCEL";
-        }
-        return true;
-      }),
-    [activeTab, bookings]
-  );
-
-  const formatPrice = (price) => `${Number(price || 0).toLocaleString()} ₫`;
-  const formatDate = (date, time) => `${date || ""} ${time || ""}`.trim();
-
-  const resolveProofImage = (proofImage) => {
-    if (!proofImage) return null;
-    if (proofImage.startsWith("data:") || proofImage.startsWith("http")) return proofImage;
-    if (proofImage.startsWith("/")) return `${apiBaseUrl}${proofImage}`;
-    return null;
+  const getStatusText = (status) => {
+    const s = String(status || "").toUpperCase();
+    if (s.includes("PENDING")) return "Chờ xử lý";
+    if (s.includes("SUCCESS") || s.includes("COMPLETED")) return "Hoàn tất";
+    if (s.includes("CANCEL")) return "Đã hủy";
+    if (s.includes("REJECT")) return "Từ chối";
+    if (s.includes("IN_PROGRESS")) return "Đang thực hiện";
+    return status || "PENDING";
   };
 
-  const proofImageUrl = resolveProofImage(selectedBooking?.proofImage);
+  const filteredBookings = bookings.filter(b => {
+    const s = String(b.status || "").toLowerCase();
+    if (activeTab === "all") return true;
+    if (activeTab === "pending") return s.includes("pending");
+    if (activeTab === "success") return s.includes("success") || s.includes("completed");
+    if (activeTab === "cancel") return s.includes("cancel") || s.includes("reject");
+    return s.includes(activeTab);
+  });
+
+  const formatPrice = (price) => Number(price || 0).toLocaleString() + " ₫";
+  const formatDate = (date, time) => `${date || ""} ${time || ""}`.trim();
 
   return (
     <div className="my-bookings-container">
-      <div className="glass-bg-effect" />
-
+      <div className="glass-bg-effect"></div>
+      
       <div className="bookings-wrapper">
         <header className="page-header">
           <div className="badge">LỊCH SỬ DỊCH VỤ</div>
@@ -159,24 +131,16 @@ const MyBookings = () => {
         </header>
 
         <section className="bookings-tabs">
-          <button className={activeTab === "all" ? "active" : ""} onClick={() => setActiveTab("all")}>
-            Tất cả
-          </button>
-          <button className={activeTab === "pending" ? "active" : ""} onClick={() => setActiveTab("pending")}>
-            Đang xử lý
-          </button>
-          <button className={activeTab === "success" ? "active" : ""} onClick={() => setActiveTab("success")}>
-            Hoàn tất
-          </button>
-          <button className={activeTab === "cancel" ? "active" : ""} onClick={() => setActiveTab("cancel")}>
-            Đã hủy
-          </button>
+          <button className={activeTab === "all" ? "active" : ""} onClick={() => setActiveTab("all")}>Tất cả</button>
+          <button className={activeTab === "pending" ? "active" : ""} onClick={() => setActiveTab("pending")}>Chờ xử lý</button>
+          <button className={activeTab === "success" ? "active" : ""} onClick={() => setActiveTab("success")}>Hoàn tất</button>
+          <button className={activeTab === "cancel" ? "active" : ""} onClick={() => setActiveTab("cancel")}>Đã hủy</button>
         </section>
 
         <div className="bookings-list">
           {loading ? (
             <div className="loading-state">
-              <div className="spinner" />
+              <div className="spinner"></div>
               <p>Đang tải lịch hẹn...</p>
             </div>
           ) : filteredBookings.length > 0 ? (
@@ -190,19 +154,13 @@ const MyBookings = () => {
                     <div className="info-header">
                       <h3>Booking #{booking.id}</h3>
                       <span className={`status-pill ${getStatusBadge(booking.status)}`}>
-                        {booking.status || "PENDING"}
+                        {getStatusText(booking.status)}
                       </span>
                     </div>
                     <div className="info-details">
-                      <span>
-                        <Car size={14} /> {booking.items?.length || 1} xe
-                      </span>
-                      <span>
-                        <Clock size={14} /> {formatDate(booking.bookingDate, booking.bookingTime)}
-                      </span>
-                      <span>
-                        <MapPin size={14} /> {booking.addressName?.split(",")[0]}...
-                      </span>
+                      <span><Car size={14} /> {booking.items?.length || 1} Xe</span>
+                      <span><Clock size={14} /> {formatDate(booking.bookingDate, booking.bookingTime)}</span>
+                      <span><MapPin size={14} /> {booking.addressName?.split(',')[0]}...</span>
                     </div>
                   </div>
                 </div>
@@ -227,47 +185,33 @@ const MyBookings = () => {
 
       {selectedBooking && (
         <div className="booking-modal-backdrop" onClick={() => setSelectedBooking(null)}>
-          <div className="booking-modal-card glass-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="booking-modal-card glass-modal" onClick={e => e.stopPropagation()}>
             <header className="modal-header">
               <h2>Chi tiết lịch hẹn #{selectedBooking.id}</h2>
-              <button className="close-btn" onClick={() => setSelectedBooking(null)}>
-                &times;
-              </button>
+              <button className="close-btn" onClick={() => setSelectedBooking(null)}>&times;</button>
             </header>
-
+            
             <div className="modal-content">
               <div className="detail-section">
-                <h4>
-                  <Calendar size={16} /> Thông tin chung
-                </h4>
+                <h4><Calendar size={16} /> Thông tin chung</h4>
                 <div className="detail-grid">
-                  <p>
-                    <strong>Ngày thực hiện:</strong> {selectedBooking.bookingDate}
-                  </p>
-                  <p>
-                    <strong>Giờ bắt đầu:</strong> {selectedBooking.bookingTime}
-                  </p>
-                  <p className="full">
-                    <strong>Địa chỉ:</strong> {selectedBooking.addressName}
-                  </p>
-                  <p className="full">
-                    <strong>Ghi chú:</strong> {selectedBooking.note || "Không có ghi chú"}
-                  </p>
+                  <p><strong>Ngày thực hiện:</strong> {selectedBooking.bookingDate}</p>
+                  <p><strong>Giờ bắt đầu:</strong> {selectedBooking.bookingTime}</p>
+                  <p className="full"><strong>Địa chỉ:</strong> {selectedBooking.addressName}</p>
+                  <p className="full"><strong>Ghi chú:</strong> {selectedBooking.note || "Không có ghi chú"}</p>
                 </div>
               </div>
 
               {selectedBooking.assignedStaff && (
                 <div className="detail-section">
-                  <h4>
-                    <UserCheck size={16} /> Nhân viên thực hiện
-                  </h4>
-                  <div className="staff-card-inline">
-                    <div className="staff-avatar-inline">
+                  <h4><UserCheck size={16} /> Nhân viên thực hiện</h4>
+                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '15px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--p-accent)', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 'bold' }}>
                       {selectedBooking.assignedStaff.name?.charAt(0)}
                     </div>
                     <div>
-                      <p className="staff-name-inline">{selectedBooking.assignedStaff.name}</p>
-                      <p className="staff-role-inline">Chuyên viên kỹ thuật</p>
+                      <p style={{ margin: 0, fontWeight: 'bold' }}>{selectedBooking.assignedStaff.name}</p>
+                      <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.6 }}>Chuyên viên kỹ thuật</p>
                     </div>
                   </div>
                 </div>
@@ -275,60 +219,39 @@ const MyBookings = () => {
 
               {selectedBooking.proofImage && (
                 <div className="detail-section">
-                  <h4>
-                    <Camera size={16} /> Hình ảnh nghiệm thu
-                  </h4>
-                  <div className="proof-image-container">
-                    {proofImageUrl ? (
-                      <img src={proofImageUrl} alt="Nghiệm thu" className="proof-image" />
-                    ) : (
-                      <p className="proof-image-placeholder">Đã có ảnh nghiệm thu được tải lên.</p>
-                    )}
+                  <h4><Camera size={16} /> Hình ảnh nghiệm thu</h4>
+                  <div className="proof-image-container" style={{ position: 'relative', height: '150px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
+                    <p style={{ fontSize: '0.8rem', opacity: 0.5 }}>[Hình ảnh: {selectedBooking.proofImage}]</p>
                   </div>
                 </div>
               )}
 
               <div className="detail-section">
-                <h4>
-                  <Car size={16} /> Danh sách xe và dịch vụ
-                </h4>
+                <h4><Car size={16} /> Danh sách xe & Dịch vụ</h4>
                 <div className="items-list-premium">
-                  {selectedBooking.items && selectedBooking.items.length > 0 ? (
-                    selectedBooking.items.map((item, index) => (
-                      <div key={index} className="item-row-premium">
-                        <div className="item-v-info">
-                          <strong>{item.vehicleType}</strong>
-                          <span>{item.vehiclePlate}</span>
-                        </div>
-                        <div className="item-s-info">{item.serviceType}</div>
-                        <div className="item-price">{formatPrice(item.price)}</div>
+                  {selectedBooking.items?.map((item, i) => (
+                    <div key={i} className="item-row-premium">
+                      <div className="item-v-info">
+                        <strong>{item.vehicleType}</strong>
+                        <span>{item.vehiclePlate}</span>
                       </div>
-                    ))
-                  ) : (
-                    <div className="fallback-item">
-                      <p>
-                        {selectedBooking.vehicleType} - {selectedBooking.vehiclePlate}
-                      </p>
-                      <p>{selectedBooking.serviceType}</p>
+                      <div className="item-s-info">{item.serviceType}</div>
+                      <div className="item-price">{formatPrice(item.price)}</div>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
 
               <div className="detail-section payment-summary">
                 <div className="summary-row">
                   <span>Tiền dịch vụ:</span>
-                  <strong>
-                    {formatPrice((selectedBooking.totalPrice || 0) - (selectedBooking.travelFee || 0))}
-                  </strong>
+                  <strong>{formatPrice((selectedBooking.totalPrice || 0) - (selectedBooking.travelFee || 0))}</strong>
                 </div>
                 {selectedBooking.distance != null && (
                   <div className="summary-row">
                     <span>Phí di chuyển ({selectedBooking.distance} km):</span>
                     <strong>
-                      {selectedBooking.travelFee === 0 && selectedBooking.distance > 0 ? (
-                        <span className="free-badge">FREE</span>
-                      ) : null}
+                      {selectedBooking.travelFee === 0 && selectedBooking.distance > 0 ? <span className="free-badge">FREE</span> : ""}
                       {formatPrice(selectedBooking.travelFee)}
                     </strong>
                   </div>
@@ -343,56 +266,84 @@ const MyBookings = () => {
                 </div>
                 <div className="summary-row remaining">
                   <span>Cần thanh toán thêm:</span>
-                  <strong>
-                    {formatPrice((selectedBooking.totalPrice || 0) - (selectedBooking.depositAmount || 0))}
-                  </strong>
+                  <strong>{formatPrice((selectedBooking.totalPrice || 0) - (selectedBooking.depositAmount || 0))}</strong>
+                </div>
+                <div className="summary-row payment-status">
+                  <span>Trạng thái thanh toán:</span>
+                  <span className={`status-pill ${selectedBooking.paymentStatus === 'PAID_FULL' ? 'status-success' : (selectedBooking.paymentStatus === 'DEPOSITED' ? 'status-active' : 'status-pending')}`}>
+                    {selectedBooking.paymentStatus === 'PAID_FULL' ? 'Đã thanh toán đủ' : (selectedBooking.paymentStatus === 'DEPOSITED' ? 'Đã cọc 10%' : 'Chưa thanh toán')}
+                  </span>
                 </div>
               </div>
 
-              {selectedBooking.status === "COMPLETED" && (
-                <div className="detail-section rating-section">
-                  <h4>
-                    <Star size={16} /> Đánh giá dịch vụ
-                  </h4>
+              {selectedBooking.paymentStatus !== 'PAID_FULL' && 
+               !['CANCEL', 'CANCELLED', 'REJECT', 'STAFF_REJECT'].includes(selectedBooking.status) &&
+               (selectedBooking.paymentMethod === 'MOMO' || selectedBooking.depositAmount > 0) && (
+                <div className="repay-section" style={{ marginTop: '20px', padding: '15px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '12px', border: '1px dashed var(--p-accent)' }}>
+                  <p style={{ margin: 0, fontSize: '0.9rem' }}>Bạn chưa hoàn tất thanh toán cho đơn hàng này.</p>
+                  <button 
+                    className="btn-primary-premium" 
+                    style={{ marginTop: '10px', width: '100%' }}
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`${import.meta.env.VITE_API_URL}/momo/create-payment/${selectedBooking.id}`, {
+                          method: 'POST',
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                          }
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.payUrl) {
+                          window.location.href = data.payUrl;
+                        } else {
+                          toast.error(data.message || "Lỗi khởi tạo thanh toán");
+                        }
+                      } catch {
+                        toast.error("Không thể kết nối đến máy chủ");
+                      }
+                    }}
+                  >
+                    Thanh toán ngay qua MoMo
+                  </button>
+                </div>
+              )}
+
+              {selectedBooking.status === 'COMPLETED' && (
+                <div className="detail-section rating-section" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
+                  <h4><Star size={16} /> Đánh giá dịch vụ</h4>
                   {selectedBooking.rating ? (
                     <div className="rating-result">
-                      <div style={{ display: "flex", gap: "5px", marginBottom: "10px" }}>
-                        {[...Array(5)].map((_, index) => (
-                          <Star
-                            key={index}
-                            size={20}
-                            fill={index < selectedBooking.rating ? "#fbbf24" : "none"}
-                            stroke={index < selectedBooking.rating ? "#fbbf24" : "currentColor"}
-                          />
+                      <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} size={20} fill={i < selectedBooking.rating ? "#fbbf24" : "none"} stroke={i < selectedBooking.rating ? "#fbbf24" : "currentColor"} />
                         ))}
                       </div>
-                      <p style={{ fontStyle: "italic", opacity: 0.8 }}>
-                        "{selectedBooking.reviewComment || "Không có nhận xét"}"
-                      </p>
+                      <p style={{ fontStyle: 'italic', opacity: 0.8 }}>"{selectedBooking.reviewComment || "Không có nhận xét"}"</p>
                     </div>
                   ) : (
                     <div className="rating-form">
-                      <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-                        {[...Array(5)].map((_, index) => (
-                          <Star
-                            key={index}
-                            size={28}
-                            style={{ cursor: "pointer" }}
-                            fill={index < revRating ? "#fbbf24" : "none"}
-                            stroke={index < revRating ? "#fbbf24" : "currentColor"}
-                            onClick={() => setRevRating(index + 1)}
+                      <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            size={28} 
+                            style={{ cursor: 'pointer' }}
+                            fill={i < revRating ? "#fbbf24" : "none"} 
+                            stroke={i < revRating ? "#fbbf24" : "currentColor"}
+                            onClick={() => setRevRating(i + 1)}
                           />
                         ))}
                       </div>
-                      <textarea
+                      <textarea 
                         placeholder="Nhận xét của bạn về dịch vụ..."
                         value={revComment}
                         onChange={(e) => setRevComment(e.target.value)}
                         className="review-textarea"
                       />
-                      <button
-                        className="btn-primary-premium"
-                        style={{ marginTop: "10px", width: "100%", padding: "12px" }}
+                      <button 
+                        className="btn-primary-premium" 
+                        style={{ marginTop: '10px', width: '100%', padding: '12px' }}
                         onClick={() => handleSendReview(selectedBooking.id)}
                         disabled={submittingReview}
                       >
@@ -404,18 +355,17 @@ const MyBookings = () => {
               )}
             </div>
 
-            <footer className="modal-footer modal-footer-actions">
-              {selectedBooking.status === "PENDING" && (
-                <button
-                  className="btn-done btn-cancel-booking"
+            <footer className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              {selectedBooking.status === 'PENDING' && (
+                <button 
+                  className="btn-done" 
                   onClick={() => handleCancelBooking(selectedBooking.id)}
+                  style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#ef4444' }}
                 >
                   Hủy lịch hẹn
                 </button>
               )}
-              <button className="btn-done" onClick={() => setSelectedBooking(null)}>
-                Đóng
-              </button>
+              <button className="btn-done" onClick={() => setSelectedBooking(null)}>Đóng</button>
             </footer>
           </div>
         </div>

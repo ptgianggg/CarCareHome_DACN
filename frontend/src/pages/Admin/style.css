@@ -24,7 +24,7 @@
     grid-template-columns: 280px minmax(0, 1fr);
     height: 100vh;
     color: var(--admin-text);
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-body);
 }
 
 .admin-shell::before {

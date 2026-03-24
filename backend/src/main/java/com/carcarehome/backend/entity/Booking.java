@@ -1,25 +1,22 @@
 package com.carcarehome.backend.entity;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
 import lombok.Data;
-
 @Entity
 @Data
 @Table(name = "bookings")
@@ -28,6 +25,12 @@ public class Booking {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "payment_method", length = 20)
+    private String paymentMethod; // CASH, MOMO
+
+    @Column(name = "payment_status", length = 30)
+    private String paymentStatus; // UNPAID, DEPOSITED, PAID_FULL
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "assigned_staff_id")
@@ -99,12 +102,17 @@ public class Booking {
         items.add(item);
         item.setBooking(this);
     }
-
     @PrePersist
     public void onCreate() {
         LocalDateTime now = LocalDateTime.now();
         if (status == null || status.isBlank()) {
             status = "PENDING";
+        }
+        if (paymentStatus == null || paymentStatus.isBlank()) {
+            paymentStatus = "UNPAID";
+        }
+        if (paymentMethod == null || paymentMethod.isBlank()) {
+            paymentMethod = "CASH";
         }
         if (totalPrice == null) {
             totalPrice = BigDecimal.ZERO;
@@ -124,3 +132,5 @@ public class Booking {
         updatedAt = LocalDateTime.now();
     }
 }
+
+

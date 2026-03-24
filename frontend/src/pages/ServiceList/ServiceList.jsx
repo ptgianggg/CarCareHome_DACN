@@ -1,27 +1,31 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-
-import Footer from "../../components/Footer/Footer";
-import Header from "../../components/Header/Header";
-import { getCategories, getServices } from "../../services/api";
-
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrowRight, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { getCategories, getServices } from "@/services/api";
+import Header from "@/components/Header/Header";
+import Footer from "@/components/Footer/Footer";
 import "./style.css";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  import.meta.env.VITE_API_URL?.replace("/api", "") ||
-  "http://localhost:8080";
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1520340356584-f9d60d106df9?auto=format&fit=crop&q=80&w=400";
+const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:8089/api").replace(/\/api\/?$/, "");
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1520340356584-f9d60d106df9?auto=format&fit=crop&q=80&w=800";
 
-const ServiceList = () => {
+const normalizeText = (value) => String(value || "").toLowerCase();
+
+function ServiceList() {
+  const navigate = useNavigate();
+  const { categoryName } = useParams();
+  const [searchParams] = useSearchParams();
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [localImageMap, setLocalImageMap] = useState({});
-  const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
-  const { categoryName } = useParams();
+  const [searchInput, setSearchInput] = useState(searchParams.get("q") || "");
+
+  const selectedCategory = categoryName ? decodeURIComponent(categoryName) : "";
+
+  useEffect(() => {
+    setSearchInput(searchParams.get("q") || "");
+  }, [searchParams]);
 
   useEffect(() => {
     try {
@@ -33,84 +37,144 @@ const ServiceList = () => {
   }, []);
 
   useEffect(() => {
-    const fetchAll = async () => {
+    let ignore = false;
+
+    const loadData = async () => {
       try {
-        const [catsRes, servsRes] = await Promise.all([getCategories(), getServices()]);
-        setCategories(Array.isArray(catsRes) ? catsRes : []);
-        setServices(Array.isArray(servsRes) ? servsRes : []);
+        const [categoryData, serviceData] = await Promise.all([getCategories(), getServices()]);
+        if (ignore) {
+          return;
+        }
+
+        setCategories(Array.isArray(categoryData) ? categoryData : []);
+        setServices(Array.isArray(serviceData) ? serviceData.filter((item) => item.active !== false) : []);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Load service list failed:", error);
       } finally {
-        setLoading(false);
+        if (!ignore) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchAll();
+    loadData();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  const activeServices = useMemo(() => services.filter((service) => service.active !== false), [services]);
+  const resolveImage = (service) => {
+    const candidates = [];
 
-  const groupedServices = useMemo(() => {
-    let result = categories
-      .map((category) => ({
-        ...category,
-        items: activeServices.filter((service) => service.category === category.name),
-      }))
-      .filter((group) => group.items.length > 0);
-
-    if (searchTerm.trim()) {
-      const lowerSearch = searchTerm.toLowerCase();
-      result = result
-        .map((group) => ({
-          ...group,
-          items: group.items.filter(
-            (item) =>
-              item.name.toLowerCase().includes(lowerSearch) ||
-              (item.description && item.description.toLowerCase().includes(lowerSearch))
-          ),
-        }))
-        .filter((group) => group.items.length > 0);
-    }
-
-    if (categoryName) {
-      const decodedName = decodeURIComponent(categoryName);
-      result = result.filter((group) => group.name === decodedName);
-    }
-
-    return result;
-  }, [categories, activeServices, searchTerm, categoryName]);
-
-  const resolveIcon = (service) => {
     if (Array.isArray(service.imageUrls) && service.imageUrls.length > 0) {
-      const url = service.imageUrls[0];
-      return url.startsWith("http") ? url : `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+      candidates.push(service.imageUrls[0]);
     }
 
     if (service.imageUrl) {
-      return service.imageUrl.startsWith("http")
-        ? service.imageUrl
-        : `${API_BASE_URL}${service.imageUrl.startsWith("/") ? "" : "/"}${service.imageUrl}`;
+      candidates.push(service.imageUrl);
     }
 
-    const localImg = localImageMap[String(service.id)];
-    if (localImg) {
-      const firstLocal = Array.isArray(localImg) ? localImg[0] : localImg;
-      if (typeof firstLocal === "string" && firstLocal.startsWith("data:")) {
-        return firstLocal;
-      }
+    const localAsset = localImageMap[String(service.id)];
+    if (localAsset) {
+      const normalized = Array.isArray(localAsset) ? localAsset[0] : localAsset;
+      candidates.push(normalized);
     }
 
-    return FALLBACK_IMAGE;
+    const firstValid = candidates.find(Boolean);
+    if (!firstValid) {
+      return FALLBACK_IMAGE;
+    }
+
+    if (String(firstValid).startsWith("data:") || String(firstValid).startsWith("http")) {
+      return firstValid;
+    }
+
+    return `${API_ORIGIN}${String(firstValid).startsWith("/") ? "" : "/"}${firstValid}`;
+  };
+
+  const categoryOptions = useMemo(() => {
+    return categories
+      .map((category) => ({
+        ...category,
+        count: services.filter((service) => service.category === category.name).length
+      }))
+      .filter((category) => category.count > 0);
+  }, [categories, services]);
+
+  const groupedServices = useMemo(() => {
+    const query = normalizeText(searchInput.trim());
+    const groups = categoryOptions
+      .map((category) => ({
+        ...category,
+        items: services.filter((service) => service.category === category.name)
+      }))
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => {
+          if (selectedCategory && item.category !== selectedCategory) {
+            return false;
+          }
+
+          if (!query) {
+            return true;
+          }
+
+          return [item.name, item.description, item.category].some((value) => normalizeText(value).includes(query));
+        })
+      }))
+      .filter((group) => group.items.length > 0);
+
+    if (!selectedCategory) {
+      return groups;
+    }
+
+    return groups.filter((group) => group.name === selectedCategory);
+  }, [categoryOptions, searchInput, selectedCategory, services]);
+
+  const totalVisibleServices = useMemo(() => {
+    return groupedServices.reduce((total, group) => total + group.items.length, 0);
+  }, [groupedServices]);
+
+  const pageTitle = selectedCategory
+    ? selectedCategory
+    : searchInput.trim()
+      ? `Kết quả cho “${searchInput.trim()}”`
+      : "Bảng dịch vụ chăm sóc xe";
+
+  const pageSubtitle = selectedCategory
+    ? "Danh mục đang được lọc theo nhóm dịch vụ để bạn so sánh và chọn nhanh hơn."
+    : "Tìm theo nhu cầu, lọc theo danh mục rồi đi thẳng đến trang chi tiết hoặc màn đặt lịch.";
+
+  const buildPath = (category) => {
+    const params = new URLSearchParams();
+    if (searchInput.trim()) {
+      params.set("q", searchInput.trim());
+    }
+
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    return category ? `/services/${encodeURIComponent(category)}${suffix}` : `/services${suffix}`;
+  };
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    navigate(buildPath(selectedCategory || ""));
+  };
+
+  const handleClearFilters = () => {
+    setSearchInput("");
+    navigate("/services");
   };
 
   if (loading) {
     return (
       <div className="service-list-page">
         <Header />
-        <div className="loading-refined">
-          <div className="spinner-heavy" />
-          <p>Đang chuẩn bị danh sách dịch vụ...</p>
-        </div>
+        <main className="service-page-shell page-shell">
+          <div className="loading-refined">
+            <div className="spinner-heavy" />
+            <p>Đang chuẩn bị danh sách dịch vụ phù hợp cho bạn...</p>
+          </div>
+        </main>
         <Footer />
       </div>
     );
@@ -120,128 +184,130 @@ const ServiceList = () => {
     <div className="service-list-page">
       <Header />
 
-      <div className="category-nav-wrapper">
-        <div className="category-nav-scroll">
-          <div className={`cat-nav-item ${!categoryName ? "active" : ""}`} onClick={() => navigate("/services")}>
-            <span className="cat-nav-label">Tất cả</span>
+      <main className="service-page-shell">
+        <section className="page-shell service-hero">
+          <div className="service-hero-copy">
+            <span className="tag-eyebrow">Khám phá dịch vụ</span>
+            <h1>{pageTitle}</h1>
+            <p>{pageSubtitle}</p>
           </div>
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              className={`cat-nav-item ${categoryName === encodeURIComponent(category.name) ? "active" : ""}`}
-              onClick={() => navigate(`/services/${encodeURIComponent(category.name)}`)}
-            >
-              {category.icon && <img src={category.icon} alt="" className="cat-nav-icon" />}
-              <span className="cat-nav-label">{category.name}</span>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      <main className="service-content-main">
-        <div className="search-filter-section">
-          <div className="search-input-group">
-            <input
-              type="text"
-              placeholder="Tìm kiếm dịch vụ bạn cần..."
-              className="premium-search-input"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <div className="search-icon-btn">
-              <svg
-                width="24"
-                height="24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
+          <div className="service-hero-summary surface-card">
+            <div>
+              <strong>{totalVisibleServices}</strong>
+              <span>Dịch vụ đang hiển thị</span>
+            </div>
+            <div>
+              <strong>{categoryOptions.length}</strong>
+              <span>Danh mục đang hoạt động</span>
             </div>
           </div>
-        </div>
+        </section>
 
-        {groupedServices.length === 0 ? (
-          <div className="loading-refined">
-            <p>Không tìm thấy dịch vụ nào đang hoạt động trong mục này.</p>
-            <button onClick={() => setSearchTerm("")} className="btn-solid" style={{ marginTop: "20px" }}>
-              Hiện tất cả
-            </button>
-          </div>
-        ) : null}
-
-        {groupedServices.map((category, idx) => (
-          <div
-            key={category.id || idx}
-            className="category-block"
-            id={category.name.replace(/\s+/g, "-").toLowerCase()}
-          >
-            <div className="block-header">
-              {category.icon && (
-                <img src={category.icon} alt="" style={{ width: 32, height: 32, objectFit: "contain" }} />
-              )}
-              <h2>{category.name}</h2>
-              <div
-                style={{
-                  flex: 1,
-                  height: "2px",
-                  background: "linear-gradient(to right, #edf2f7, transparent)",
-                  marginLeft: "10px",
-                }}
+        <section className="page-shell service-toolbar">
+          <form className="service-search-form surface-card" onSubmit={handleSearchSubmit}>
+            <label htmlFor="service-search" className="service-search-label">
+              <Search size={18} />
+              <span>Tìm theo tên dịch vụ hoặc mô tả</span>
+            </label>
+            <div className="service-search-row">
+              <input
+                id="service-search"
+                type="search"
+                value={searchInput}
+                placeholder="Ví dụ: rửa xe, nội thất, ceramic..."
+                onChange={(event) => setSearchInput(event.target.value)}
               />
+              <button type="submit">Áp dụng tìm kiếm</button>
             </div>
+          </form>
 
-            <div className="services-grid-refined">
-              {category.items.map((service) => (
-                <div
-                  key={service.id}
-                  className="premium-card"
-                  onClick={() => navigate(`/services/detail/${service.id}`)}
+          <div className="service-filter-card surface-card">
+            <div className="service-filter-head">
+              <SlidersHorizontal size={18} />
+              <span>Lọc theo danh mục</span>
+            </div>
+            <div className="service-filter-actions">
+              <button
+                type="button"
+                className={!selectedCategory ? "category-pill active" : "category-pill"}
+                onClick={() => navigate(buildPath(""))}
+              >
+                Tất cả
+              </button>
+              {categoryOptions.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  className={selectedCategory === category.name ? "category-pill active" : "category-pill"}
+                  onClick={() => navigate(buildPath(category.name))}
                 >
-                  <div className="card-image-wrap">
-                    <img src={resolveIcon(service)} alt={service.name} />
-                    <div className="badge-overlay">
-                      <div className="price-badge-floating">
-                        {Number(service.price).toLocaleString()} đ
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="card-body-modern">
-                    <h3>{service.name}</h3>
-                    <p className="desc">
-                      {service.description || "Dịch vụ chăm sóc xe chuyên nghiệp nhất tại Car Care Home."}
-                    </p>
-
-                    <div className="card-footer-flex">
-                      <div className="duration-info">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <circle cx="7" cy="7" r="6" />
-                          <path d="M7 3v4l2 2" />
-                        </svg>
-                        <span>60-90 phút</span>
-                      </div>
-                      <div className="view-btn-circle">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M5 12h14m-7-7 7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  {category.name}
+                  <span>{category.count}</span>
+                </button>
               ))}
             </div>
           </div>
-        ))}
+        </section>
+
+        <section className="page-shell service-results-zone">
+          {groupedServices.length === 0 ? (
+            <div className="surface-card empty-service-state">
+              <Sparkles size={22} />
+              <h2>Chưa có kết quả phù hợp</h2>
+              <p>Hãy thử bỏ bớt từ khóa, đổi danh mục hoặc quay lại bảng dịch vụ đầy đủ để khám phá thêm.</p>
+              <button type="button" onClick={handleClearFilters}>Xóa bộ lọc</button>
+            </div>
+          ) : (
+            groupedServices.map((group) => (
+              <section key={group.id || group.name} className="service-group-block">
+                <header className="service-group-head">
+                  <div>
+                    <span className="tag-eyebrow">{group.items.length} dịch vụ đang mở</span>
+                    <h2>{group.name}</h2>
+                  </div>
+                  <button type="button" className="section-link-btn" onClick={() => navigate(buildPath(group.name))}>
+                    Xem riêng danh mục này
+                  </button>
+                </header>
+
+                <div className="service-card-grid">
+                  {group.items.map((service) => (
+                    <button
+                      key={service.id}
+                      type="button"
+                      className="service-card"
+                      onClick={() => navigate(`/services/detail/${service.id}`)}
+                    >
+                      <div className="service-card-image-wrap">
+                        <img src={resolveImage(service)} alt={service.name} />
+                        <div className="service-card-price">{Number(service.price || 0).toLocaleString()} đ</div>
+                      </div>
+
+                      <div className="service-card-body">
+                        <div className="service-card-topline">
+                          <span>{service.category || "Chăm sóc xe"}</span>
+                          <span>Đang nhận lịch</span>
+                        </div>
+                        <h3>{service.name}</h3>
+                        <p>{service.description || "Dịch vụ được mô tả ngắn gọn để người dùng đánh giá nhanh trước khi xem chi tiết."}</p>
+                        <div className="service-card-footer">
+                          <div className="service-card-chip">Tư vấn và xem chi tiết</div>
+                          <ArrowRight size={18} />
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))
+          )}
+        </section>
       </main>
 
       <Footer />
     </div>
   );
-};
+}
 
 export default ServiceList;

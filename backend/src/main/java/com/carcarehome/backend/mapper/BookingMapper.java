@@ -54,19 +54,10 @@ public class BookingMapper {
         booking.setDistance(request.getDistance());
         booking.setTravelFee(request.getTravelFee());
         
-        BigDecimal total = request.getTotalPrice() != null ? request.getTotalPrice() : BigDecimal.ZERO;
         BigDecimal deposit = request.getDepositAmount() != null ? request.getDepositAmount() : BigDecimal.ZERO;
 
         if (deposit.compareTo(BigDecimal.ZERO) < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tien coc khong duoc am");
-        }
-
-        BigDecimal maxDeposit = total.multiply(new BigDecimal("0.5"));
-        if (deposit.compareTo(maxDeposit) > 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Tien coc khong duoc vuot qua 50% tong tien dich vu"
-            );
         }
 
         booking.setDepositAmount(deposit);
