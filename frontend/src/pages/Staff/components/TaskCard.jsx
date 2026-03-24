@@ -50,9 +50,9 @@ const TaskCard = ({ task, onStatusUpdate }) => {
                         <span style={{ lineHeight: 1.4 }}>{task.addressName}</span>
                     </div>
                     <div style={{ marginTop: '8px', fontSize: '1rem', fontWeight: '800', color: 'var(--staff-primary)' }}>
-                        Tiền cần thu: {formatPrice(task.totalPrice - (task.depositAmount || 0))}
+                        Tiền cần thu: {task.paymentStatus === 'PAID_FULL' ? "0 đ" : formatPrice(task.totalPrice - (task.depositAmount || 0))}
                         <small style={{ marginLeft: '10px', fontSize: '0.75rem', color: 'var(--staff-text-muted)', fontWeight: '400' }}>
-                            (Tổng: {formatPrice(task.totalPrice)} - Cọc: {formatPrice(task.depositAmount)})
+                            {task.paymentStatus === 'PAID_FULL' ? "(Đã thanh toán đủ)" : `(Tổng: ${formatPrice(task.totalPrice)} - Cọc: ${formatPrice(task.depositAmount)})`}
                         </small>
                     </div>
                 </div>

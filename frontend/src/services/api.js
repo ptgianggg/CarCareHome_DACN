@@ -1,17 +1,22 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8089/api";
 
+// Helper: lấy token từ localStorage
 const getToken = () => localStorage.getItem("token");
 
+// Helper: tạo headers với Authorization Bearer token
 const authHeaders = () => ({
   "Content-Type": "application/json",
-  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {})
 });
 
+// ============================================================
+// AUTH APIs (public - không cần token)
+// ============================================================
 export const register = async (user) => {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(user),
+    body: JSON.stringify(user)
   });
   return res.json();
 };
@@ -20,7 +25,7 @@ export const login = async (user) => {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(user),
+    body: JSON.stringify(user)
   });
   return res.json();
 };
@@ -29,7 +34,7 @@ export const googleLogin = async (tokenId) => {
   const res = await fetch(`${API_URL}/auth/google-login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tokenId }),
+    body: JSON.stringify({ tokenId })
   });
   return res.json();
 };
@@ -38,7 +43,7 @@ export const forgotPassword = async (email) => {
   const res = await fetch(`${API_URL}/auth/forgot-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email })
   });
   return res.json();
 };
@@ -47,20 +52,24 @@ export const resetPassword = async (token, newPassword) => {
   const res = await fetch(`${API_URL}/auth/reset-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, newPassword }),
+    body: JSON.stringify({ token, newPassword })
   });
   return res.json();
 };
 
+// ============================================================
+// PROTECTED APIs (cần token - tự động gắn Authorization header)
+// ============================================================
 export const fetchWithAuth = async (endpoint, options = {}) => {
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers: {
       ...authHeaders(),
-      ...(options.headers || {}),
-    },
+      ...(options.headers || {})
+    }
   });
 
+  // Nếu server trả về 401 (token hết hạn / không hợp lệ) → logout
   if (res.status === 401) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -70,32 +79,37 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
 
   let data = {};
   try {
-    data = await res.json();
+      data = await res.json();
   } catch {
-    data = { message: res.statusText };
+      data = { message: res.statusText };
   }
 
   if (!res.ok) {
-    return {
-      error: true,
-      message: data.message || data.error || res.statusText,
-      status: res.status,
-    };
+      return { 
+          error: true, 
+          message: data.message || data.error || res.statusText,
+          status: res.status 
+      };
   }
 
   return data;
 };
 
-export const getProfile = async () =>
-  fetchWithAuth("/users/profile", {
-    method: "GET",
+// ============================================================
+// PROFILE APIs (PROTECTED)
+// ============================================================
+export const getProfile = async () => {
+  return fetchWithAuth("/users/profile", {
+    method: "GET"
   });
+};
 
-export const updateProfile = async (userData) =>
-  fetchWithAuth("/users/profile", {
+export const updateProfile = async (userData) => {
+  return fetchWithAuth("/users/profile", {
     method: "PUT",
-    body: JSON.stringify(userData),
+    body: JSON.stringify(userData)
   });
+};
 
 export const uploadAvatar = async (file) => {
   const formData = new FormData();
@@ -104,9 +118,10 @@ export const uploadAvatar = async (file) => {
   const res = await fetch(`${API_URL}/users/profile/avatar`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${getToken()}`,
+      Authorization: `Bearer ${getToken()}`
+      // Không set Content-Type để trình duyệt tự nhận diện multipart/form-data
     },
-    body: formData,
+    body: formData
   });
 
   if (res.status === 401) {
@@ -119,6 +134,9 @@ export const uploadAvatar = async (file) => {
   return res.json();
 };
 
+// ============================================================
+// BOOKING & SERVICES APIs
+// ============================================================
 export const getServices = async () => {
   const res = await fetch(`${API_URL}/services`);
   return res.json();
@@ -129,76 +147,86 @@ export const getServiceById = async (id) => {
   return res.json();
 };
 
-export const getStaffBookings = async (email) =>
-  fetchWithAuth(`/bookings/staff?email=${email}`, {
-    method: "GET",
+export const getStaffBookings = async (email) => {
+  return fetchWithAuth(`/bookings/staff?email=${email}`, {
+    method: "GET"
   });
+};
 
-export const assignStaff = async (bookingId, staffId) =>
-  fetchWithAuth(`/bookings/${bookingId}/assign?staffId=${staffId}`, {
+export const assignStaff = async (bookingId, staffId) => {
+  return fetchWithAuth(`/bookings/${bookingId}/assign?staffId=${staffId}`, {
+    method: "PUT"
+  });
+};
+
+export const updateBookingStatus = async (bookingId, status, proofImage = null) => {
+  return fetchWithAuth(`/bookings/${bookingId}/status`, {
     method: "PUT",
+    body: JSON.stringify({ status, proofImage })
   });
+};
 
-export const updateBookingStatus = async (bookingId, status, proofImage = null) =>
-  fetchWithAuth(`/bookings/${bookingId}/status`, {
-    method: "PUT",
-    body: JSON.stringify({ status, proofImage }),
+export const getUsers = async () => {
+  return fetchWithAuth("/users", {
+    method: "GET"
   });
-
-export const getUsers = async () =>
-  fetchWithAuth("/users", {
-    method: "GET",
-  });
+};
 
 export const getCategories = async () => {
   const res = await fetch(`${API_URL}/categories`);
   return res.json();
 };
 
-export const createBooking = async (bookingData) =>
-  fetchWithAuth("/booking", {
+export const createBooking = async (bookingData) => {
+  return fetchWithAuth("/booking", {
     method: "POST",
-    body: JSON.stringify(bookingData),
+    body: JSON.stringify(bookingData)
   });
+};
 
-export const getBookings = async () =>
-  fetchWithAuth("/booking", {
-    method: "GET",
+export const getBookings = async () => {
+  return fetchWithAuth("/booking", {
+    method: "GET"
   });
+};
 
-export const getMyBookings = async (email) =>
-  fetchWithAuth(`/booking/user?email=${email}`, {
-    method: "GET",
+export const getMyBookings = async (email) => {
+  return fetchWithAuth(`/booking/user?email=${email}`, {
+    method: "GET"
   });
+};
 
-export const createService = async (serviceData) =>
-  fetchWithAuth("/services", {
+export const createService = async (serviceData) => {
+  return fetchWithAuth("/services", {
     method: "POST",
-    body: JSON.stringify(serviceData),
+    body: JSON.stringify(serviceData)
   });
+};
 
-export const updateService = async (id, serviceData) =>
-  fetchWithAuth(`/services/${id}`, {
+export const updateService = async (id, serviceData) => {
+  return fetchWithAuth(`/services/${id}`, {
     method: "PUT",
-    body: JSON.stringify(serviceData),
+    body: JSON.stringify(serviceData)
   });
+};
 
 export const deleteService = async (id) => {
   const res = await fetch(`${API_URL}/services/${id}`, {
     method: "DELETE",
-    headers: authHeaders(),
+    headers: authHeaders()
   });
-
+  
   if (res.status === 401) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     window.location.href = "/login";
     return false;
   }
-
+  
   return res.ok;
 };
 
+// Logout: xoá token và user khỏi localStorage
 export const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
@@ -208,43 +236,53 @@ export const addReview = async (bookingId, rating, comment) => {
   let url = `/bookings/${bookingId}/review?rating=${rating}`;
   if (comment) url += `&comment=${encodeURIComponent(comment)}`;
   return fetchWithAuth(url, {
-    method: "PUT",
+    method: "PUT"
   });
 };
 
-export const createLeaveRequest = async (email, data) =>
-  fetchWithAuth(`/leaves?email=${email}`, {
+// --- LEAVE REQUEST APIs ---
+export const createLeaveRequest = async (email, data) => {
+  return fetchWithAuth(`/leaves?email=${email}`, {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify(data)
   });
+};
 
-export const getMyLeaves = async (email) =>
-  fetchWithAuth(`/leaves/my?email=${email}`, {
-    method: "GET",
+export const getMyLeaves = async (email) => {
+  return fetchWithAuth(`/leaves/my?email=${email}`, {
+    method: "GET"
   });
+};
 
-export const getAllLeaves = async () =>
-  fetchWithAuth("/leaves", {
-    method: "GET",
+export const getAllLeaves = async () => {
+  return fetchWithAuth(`/leaves`, {
+    method: "GET"
   });
+};
 
-export const updateLeaveStatus = async (id, status) =>
-  fetchWithAuth(`/leaves/${id}/status?status=${status}`, {
+export const updateLeaveStatus = async (id, status) => {
+  return fetchWithAuth(`/leaves/${id}/status?status=${status}`, {
+    method: "PUT"
+  });
+};
+
+export const getAvailableStaff = async () => {
+  return fetchWithAuth("/users/staff/available", {
+    method: "GET"
+  });
+};
+
+// --- ACCOUNT / ROLE MANAGEMENT APIs ---
+export const updateUserRole = async (userId, role) => {
+  return fetchWithAuth(`/users/${userId}/role`, {
     method: "PUT",
+    body: JSON.stringify({ role })
   });
+};
 
-export const getAvailableStaff = async () =>
-  fetchWithAuth("/users/staff/available", {
-    method: "GET",
+export const deleteUser = async (userId) => {
+  return fetchWithAuth(`/users/${userId}`, {
+    method: "DELETE"
   });
+};
 
-export const updateUserRole = async (userId, role) =>
-  fetchWithAuth(`/users/${userId}/role`, {
-    method: "PUT",
-    body: JSON.stringify({ role }),
-  });
-
-export const deleteUser = async (userId) =>
-  fetchWithAuth(`/users/${userId}`, {
-    method: "DELETE",
-  });

@@ -135,11 +135,21 @@ const MyTasks = () => {
                                 <h4 style={{ color: '#94a3b8', marginBottom: '10px', fontSize: '0.85rem', letterSpacing: '0.5px' }}>THU TIỀN TẬN NƠI</h4>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: 'rgba(56, 189, 248, 0.05)', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
                                     <span style={{ color: '#e2e8f0', fontWeight: '500' }}>Cần thu thực tế:</span>
-                                    <span style={{ color: '#38bdf8', fontSize: '1.2rem', fontWeight: '800' }}>{formatPrice(selectedTask.totalPrice - (selectedTask.depositAmount || 0))}</span>
+                                    <span style={{ color: '#38bdf8', fontSize: '1.2rem', fontWeight: '800' }}>
+                                        {selectedTask.paymentStatus === 'PAID_FULL' ? "0 ₫" : formatPrice(selectedTask.totalPrice - (selectedTask.depositAmount || 0))}
+                                    </span>
                                 </div>
                                 <div style={{ textAlign: 'right', marginTop: '8px', fontSize: '0.8rem', color: '#64748b' }}>
-                                    (Tổng hóa đơn: {formatPrice(selectedTask.totalPrice)} • Đã cọc: {formatPrice(selectedTask.depositAmount)})
+                                    {selectedTask.paymentStatus === 'PAID_FULL' 
+                                        ? "(Đã thanh toán 100% qua MoMo)" 
+                                        : `(Tổng: ${formatPrice(selectedTask.totalPrice)} • Đã cọc: ${formatPrice(selectedTask.depositAmount)})`}
                                 </div>
+                                {selectedTask.proofImage && (
+                                    <div style={{ marginTop: '20px' }}>
+                                        <h4 style={{ color: '#94a3b8', marginBottom: '10px', fontSize: '0.85rem', letterSpacing: '0.5px' }}>ẢNH NGHIỆM THU</h4>
+                                        <img src={selectedTask.proofImage} alt="Proof" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                    </div>
+                                )}
                             </div>
 
                         </div>
