@@ -11,7 +11,8 @@ import {
   CreditCard,
   Star,
   Camera,
-  UserCheck
+  UserCheck,
+  Phone
 } from "lucide-react";
 import toast from 'react-hot-toast';
 import "./MyBookings.css";
@@ -88,33 +89,71 @@ const MyBookings = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const s = String(status || "").toUpperCase();
-    if (s.includes("PENDING")) return "status-pending";
-    if (s.includes("SUCCESS") || s.includes("COMPLETED")) return "status-success";
-    if (s.includes("CANCEL") || s.includes("REJECT")) return "status-error";
-    if (s.includes("IN_PROGRESS")) return "status-active";
-    return "status-active";
-  };
-
   const getStatusText = (status) => {
     const s = String(status || "").toUpperCase();
+    if (s.includes("WAITING_FOR_PAYMENT")) return "Chờ thanh toán";
+    if (s.includes("AWAITING_FINAL_PAYMENT")) return "Đang thanh toán";
     if (s.includes("PENDING")) return "Chờ xử lý";
-    if (s.includes("SUCCESS") || s.includes("COMPLETED")) return "Hoàn tất";
+    if (s.includes("COMPLETED")) return "Hoàn tất";
+    if (s.includes("SUCCESS")) return "Đã duyệt";
     if (s.includes("CANCEL")) return "Đã hủy";
     if (s.includes("REJECT")) return "Từ chối";
     if (s.includes("IN_PROGRESS")) return "Đang thực hiện";
     return status || "PENDING";
   };
 
+  const getStatusBadge = (status) => {
+    const s = String(status || "").toUpperCase();
+    if (s.includes("WAITING_FOR_PAYMENT")) return "status-warning";
+    if (s.includes("AWAITING_FINAL_PAYMENT")) return "status-warning";
+    if (s.includes("PENDING")) return "status-pending";
+    if (s.includes("COMPLETED")) return "status-success";
+    if (s.includes("SUCCESS")) return "status-active";
+    if (s.includes("CANCEL") || s.includes("REJECT")) return "status-error";
+    if (s.includes("IN_PROGRESS")) return "status-active";
+    return "status-active";
+  };
+
   const filteredBookings = bookings.filter(b => {
     const s = String(b.status || "").toLowerCase();
     if (activeTab === "all") return true;
-    if (activeTab === "pending") return s.includes("pending");
+    if (activeTab === "waiting_for_payment") return s === "waiting_for_payment";
+    if (activeTab === "pending") return s === "pending";
     if (activeTab === "success") return s.includes("success") || s.includes("completed");
     if (activeTab === "cancel") return s.includes("cancel") || s.includes("reject");
     return s.includes(activeTab);
   });
+
+  const CountdownTimer = ({ createdAt, onExpire }) => {
+    const [timeLeft, setTimeLeft] = useState(0);
+
+    useEffect(() => {
+      const calculateTimeLeft = () => {
+        const start = new Date(createdAt).getTime();
+        const now = new Date().getTime();
+        const diff = 5 * 60 * 1000 - (now - start);
+        return Math.max(0, diff);
+      };
+
+      setTimeLeft(calculateTimeLeft());
+      const timer = setInterval(() => {
+        const remaining = calculateTimeLeft();
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+          clearInterval(timer);
+          if (onExpire) onExpire();
+        }
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }, [createdAt]);
+
+    if (timeLeft <= 0) return <span className="timer-expired">Hết hạn</span>;
+
+    const mins = Math.floor(timeLeft / 60000);
+    const secs = Math.floor((timeLeft % 60000) / 1000);
+    return <span className="timer-active">{mins}:{secs < 10 ? '0' : ''}{secs}</span>;
+  };
 
   const formatPrice = (price) => Number(price || 0).toLocaleString() + " ₫";
   const formatDate = (date, time) => `${date || ""} ${time || ""}`.trim();
@@ -127,14 +166,27 @@ const MyBookings = () => {
         <header className="page-header">
           <div className="badge">LỊCH SỬ DỊCH VỤ</div>
           <h1>Lịch hẹn của tôi</h1>
-          <p>Quản lý và theo dõi tiến độ chăm sóc xế yêu của bạn</p>
+         
         </header>
 
-        <section className="bookings-tabs">
-          <button className={activeTab === "all" ? "active" : ""} onClick={() => setActiveTab("all")}>Tất cả</button>
-          <button className={activeTab === "pending" ? "active" : ""} onClick={() => setActiveTab("pending")}>Chờ xử lý</button>
-          <button className={activeTab === "success" ? "active" : ""} onClick={() => setActiveTab("success")}>Hoàn tất</button>
-          <button className={activeTab === "cancel" ? "active" : ""} onClick={() => setActiveTab("cancel")}>Đã hủy</button>
+        <section className="bookings-tabs-container">
+          <div className="bookings-tabs">
+            <button className={activeTab === "all" ? "active" : ""} onClick={() => setActiveTab("all")}>
+              <span>Tất cả</span>
+            </button>
+            <button className={activeTab === "waiting_for_payment" ? "active" : ""} onClick={() => setActiveTab("waiting_for_payment")}>
+              <span>Chờ thanh toán</span>
+            </button>
+            <button className={activeTab === "pending" ? "active" : ""} onClick={() => setActiveTab("pending")}>
+              <span>Chờ duyệt</span>
+            </button>
+            <button className={activeTab === "success" ? "active" : ""} onClick={() => setActiveTab("success")}>
+              <span>Hoàn tất</span>
+            </button>
+            <button className={activeTab === "cancel" ? "active" : ""} onClick={() => setActiveTab("cancel")}>
+              <span>Đã hủy</span>
+            </button>
+          </div>
         </section>
 
         <div className="bookings-list">
@@ -152,24 +204,34 @@ const MyBookings = () => {
                   </div>
                   <div className="booking-info">
                     <div className="info-header">
-                      <h3>Booking #{booking.id}</h3>
+                      <div>
+                        <h3 style={{ marginBottom: '2px' }}>Booking #{booking.id}</h3>
+                        <p style={{ margin: 0, fontSize: '0.7rem', opacity: 0.4 }}>Ngày tạo: {booking.createdAt ? new Date(booking.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "N/A"}</p>
+                      </div>
                       <span className={`status-pill ${getStatusBadge(booking.status)}`}>
                         {getStatusText(booking.status)}
                       </span>
                     </div>
                     <div className="info-details">
-                      <span><Car size={14} /> {booking.items?.length || 1} Xe</span>
-                      <span><Clock size={14} /> {formatDate(booking.bookingDate, booking.bookingTime)}</span>
-                      <span><MapPin size={14} /> {booking.addressName?.split(',')[0]}...</span>
+                      <div className="detail-pill"><Car size={13} /> {booking.items?.length || 1} Xe</div>
+                      <div className="detail-pill"><Clock size={13} /> {formatDate(booking.bookingDate, booking.bookingTime)}</div>
+                      {booking.status === "WAITING_FOR_PAYMENT" && (
+                        <div className="pay-countdown-pill">
+                          <Clock size={12} strokeWidth={3} />
+                          <CountdownTimer createdAt={booking.createdAt} onExpire={fetchUserBookings} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
                 <div className="card-right">
-                  <div className="price-info">
-                    <span className="label">Tổng tiền</span>
-                    <span className="value">{formatPrice(booking.totalPrice)}</span>
+                  <div className="price-wrapper">
+                    <span className="price-label">Tổng thanh toán</span>
+                    <span className="price-value">{formatPrice(booking.totalPrice)}</span>
                   </div>
-                  <ChevronRight size={20} className="arrow" />
+                  <div className="action-circle">
+                    <ChevronRight size={18} />
+                  </div>
                 </div>
               </div>
             ))
@@ -195,6 +257,7 @@ const MyBookings = () => {
               <div className="detail-section">
                 <h4><Calendar size={16} /> Thông tin chung</h4>
                 <div className="detail-grid">
+                  <p><strong>Ngày tạo đơn:</strong> {selectedBooking.createdAt ? new Date(selectedBooking.createdAt).toLocaleString('vi-VN') : "N/A"}</p>
                   <p><strong>Ngày thực hiện:</strong> {selectedBooking.bookingDate}</p>
                   <p><strong>Giờ bắt đầu:</strong> {selectedBooking.bookingTime}</p>
                   <p className="full"><strong>Địa chỉ:</strong> {selectedBooking.addressName}</p>
@@ -202,17 +265,27 @@ const MyBookings = () => {
                 </div>
               </div>
 
-              {selectedBooking.assignedStaff && (
+              {selectedBooking.assignedStaffs && selectedBooking.assignedStaffs.length > 0 && (
                 <div className="detail-section">
-                  <h4><UserCheck size={16} /> Nhân viên thực hiện</h4>
-                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '15px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--p-accent)', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 'bold' }}>
-                      {selectedBooking.assignedStaff.name?.charAt(0)}
-                    </div>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 'bold' }}>{selectedBooking.assignedStaff.name}</p>
-                      <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.6 }}>Chuyên viên kỹ thuật</p>
-                    </div>
+                  <h4><UserCheck size={16} /> Chuyên viên thực hiện</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' }}>
+                    {selectedBooking.assignedStaffs.map(as => (
+                      <div key={as.id} style={{ background: 'rgba(59, 130, 246, 0.08)', padding: '15px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(59, 130, 246, 0.15)' }}>
+                        {as.avatar ? (
+                          <img src={as.avatar} alt={as.name} style={{ width: '42px', height: '42px', borderRadius: '12px', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--p-accent, #3b82f6)', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 'bold' }}>
+                            {as.name?.charAt(0)}
+                          </div>
+                        )}
+                        <div style={{ overflow: 'hidden' }}>
+                          <p style={{ margin: 0, fontWeight: 'bold', fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{as.name}</p>
+                          <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.6, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Phone size={10} /> {as.phone || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -220,8 +293,12 @@ const MyBookings = () => {
               {selectedBooking.proofImage && (
                 <div className="detail-section">
                   <h4><Camera size={16} /> Hình ảnh nghiệm thu</h4>
-                  <div className="proof-image-container" style={{ position: 'relative', height: '150px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
-                    <p style={{ fontSize: '0.8rem', opacity: 0.5 }}>[Hình ảnh: {selectedBooking.proofImage}]</p>
+                  <div className="proof-image-container" style={{ position: 'relative', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', overflow: 'hidden', padding: '10px' }}>
+                    <img 
+                      src={selectedBooking.proofImage} 
+                      alt="Ảnh nghiệm thu dịch vụ" 
+                      style={{ width: '100%', maxHeight: '400px', objectFit: 'contain', borderRadius: '8px', display: 'block', margin: '0 auto' }} 
+                    />
                   </div>
                 </div>
               )}
@@ -270,17 +347,20 @@ const MyBookings = () => {
                 </div>
                 <div className="summary-row payment-status">
                   <span>Trạng thái thanh toán:</span>
-                  <span className={`status-pill ${selectedBooking.paymentStatus === 'PAID_FULL' ? 'status-success' : (selectedBooking.paymentStatus === 'DEPOSITED' ? 'status-active' : 'status-pending')}`}>
-                    {selectedBooking.paymentStatus === 'PAID_FULL' ? 'Đã thanh toán đủ' : (selectedBooking.paymentStatus === 'DEPOSITED' ? 'Đã cọc 10%' : 'Chưa thanh toán')}
+                  <span className={`status-pill ${selectedBooking.paymentStatus === 'PAID_FULL' ? 'status-success' : (selectedBooking.paymentStatus === 'DEPOSITED' ? 'status-active' : 'status-warning')}`}>
+                    {selectedBooking.paymentStatus === 'PAID_FULL' ? 'Đã thanh toán đủ' : (selectedBooking.paymentStatus === 'DEPOSITED' ? 'Đã cọc 10%' : 'Chờ thanh toán')}
                   </span>
                 </div>
               </div>
 
-              {selectedBooking.paymentStatus !== 'PAID_FULL' && 
-               !['CANCEL', 'CANCELLED', 'REJECT', 'STAFF_REJECT'].includes(selectedBooking.status) &&
-               (selectedBooking.paymentMethod === 'MOMO' || selectedBooking.depositAmount > 0) && (
-                <div className="repay-section" style={{ marginTop: '20px', padding: '15px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '12px', border: '1px dashed var(--p-accent)' }}>
-                  <p style={{ margin: 0, fontSize: '0.9rem' }}>Bạn chưa hoàn tất thanh toán cho đơn hàng này.</p>
+              {selectedBooking.status === 'WAITING_FOR_PAYMENT' && (
+                <div className="repay-section" style={{ marginTop: '20px', padding: '16px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: '#10b981' }}>⏳ Đang chờ thanh toán cọc</p>
+                    <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: '600' }}>
+                      Hết hiệu lực sau: <CountdownTimer createdAt={selectedBooking.createdAt} onExpire={() => setSelectedBooking(null)} />
+                    </div>
+                  </div>
                   <button 
                     className="btn-primary-premium" 
                     style={{ marginTop: '10px', width: '100%' }}
@@ -309,45 +389,92 @@ const MyBookings = () => {
                 </div>
               )}
 
+              {selectedBooking.status === 'AWAITING_FINAL_PAYMENT' && (
+                <div className="repay-section" style={{ marginTop: '20px', padding: '15px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '12px', border: '1px dashed #a855f7' }}>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#a855f7', fontWeight: '600' }}>
+                    Dịch vụ đã hoàn tất. Kỹ thuật viên đang chờ bạn thanh toán phần còn lại.
+                  </p>
+                  <p style={{ margin: '8px 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Số tiền cần thanh toán: <strong style={{ color: '#fff' }}>{formatPrice((selectedBooking.totalPrice || 0) - (selectedBooking.depositAmount || 0))}</strong>
+                  </p>
+                </div>
+              )}
+
               {selectedBooking.status === 'COMPLETED' && (
-                <div className="detail-section rating-section" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
-                  <h4><Star size={16} /> Đánh giá dịch vụ</h4>
+                <div className="detail-section rating-section" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '24px', marginTop: '10px' }}>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', color: '#fff', fontSize: '1.1rem' }}>
+                    <Star size={18} fill="#fbbf24" stroke="#fbbf24" /> Đánh giá dịch vụ
+                  </h4>
+                  
                   {selectedBooking.rating ? (
-                    <div className="rating-result">
-                      <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                    <div className="rating-result" style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
                         {[...Array(5)].map((_, i) => (
-                          <Star key={i} size={20} fill={i < selectedBooking.rating ? "#fbbf24" : "none"} stroke={i < selectedBooking.rating ? "#fbbf24" : "currentColor"} />
+                          <Star key={i} size={18} fill={i < selectedBooking.rating ? "#fbbf24" : "none"} stroke={i < selectedBooking.rating ? "#fbbf24" : "rgba(255,255,255,0.2)"} />
                         ))}
                       </div>
-                      <p style={{ fontStyle: 'italic', opacity: 0.8 }}>"{selectedBooking.reviewComment || "Không có nhận xét"}"</p>
+                      <p style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.8)', fontSize: '0.95rem', lineHeight: 1.6, margin: 0 }}>
+                        "{selectedBooking.reviewComment || "Cảm ơn bạn đã tin tưởng dịch vụ của CarCareHome!"}"
+                      </p>
                     </div>
                   ) : (
-                    <div className="rating-form">
-                      <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                    <div className="rating-form" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '24px', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                      <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>Trải nghiệm của bạn như thế nào? Hãy chia sẻ để chúng tôi hoàn thiện hơn.</p>
+                      
+                      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', justifyContent: 'center' }}>
                         {[...Array(5)].map((_, i) => (
                           <Star 
                             key={i} 
-                            size={28} 
-                            style={{ cursor: 'pointer' }}
+                            size={32} 
+                            style={{ 
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              transform: i < revRating ? 'scale(1.1)' : 'scale(1)'
+                            }}
                             fill={i < revRating ? "#fbbf24" : "none"} 
-                            stroke={i < revRating ? "#fbbf24" : "currentColor"}
+                            stroke={i < revRating ? "#fbbf24" : "rgba(255,255,255,0.3)"}
                             onClick={() => setRevRating(i + 1)}
+                            onMouseEnter={() => setRevRating(i + 1)}
                           />
                         ))}
                       </div>
+
                       <textarea 
                         placeholder="Nhận xét của bạn về dịch vụ..."
                         value={revComment}
                         onChange={(e) => setRevComment(e.target.value)}
-                        className="review-textarea"
+                        style={{
+                          width: '100%',
+                          minHeight: '100px',
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '12px',
+                          padding: '16px',
+                          color: '#fff',
+                          fontSize: '0.95rem',
+                          outline: 'none',
+                          resize: 'none',
+                          marginBottom: '16px',
+                          transition: 'border-color 0.3s ease'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = '#1d70ff'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
                       />
+
                       <button 
-                        className="btn-primary-premium" 
-                        style={{ marginTop: '10px', width: '100%', padding: '12px' }}
-                        onClick={() => handleSendReview(selectedBooking.id)}
-                        disabled={submittingReview}
+                        className="hero-primary-btn" 
+                        style={{ 
+                          width: '100%', 
+                          justifyContent: 'center',
+                          padding: '16px',
+                          background: revRating > 0 ? 'linear-gradient(to right, #1d70ff, #31a4ff)' : 'rgba(255,255,255,0.05)',
+                          color: revRating > 0 ? '#fff' : 'rgba(255,255,255,0.2)',
+                          cursor: revRating > 0 ? 'pointer' : 'not-allowed'
+                        }}
+                        onClick={() => revRating > 0 && handleSendReview(selectedBooking.id)}
+                        disabled={submittingReview || revRating === 0}
                       >
-                        {submittingReview ? "ĐANG GỬI..." : "GỬI ĐÁNH GIÁ"}
+                        {submittingReview ? "ĐANG GỬI..." : "GỬI ĐÁNH GIÁ NGAY"}
                       </button>
                     </div>
                   )}

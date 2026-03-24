@@ -2,6 +2,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Bell,
   CalendarClock,
   ChevronDown,
   LayoutDashboard,
@@ -12,6 +13,7 @@ import {
   Wrench,
   X
 } from "lucide-react";
+import logo from "@/assets/logo.png";
 import "./Header.css";
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:8089/api").replace(/\/api$/, "");
@@ -87,49 +89,48 @@ function Header() {
       <div className="header-shell">
         <Link to="/" className="header-brand">
           <div className="header-logo">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 13L3 15V18H21V15L19 13H5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-              <path d="M5 13L7 7H17L19 13" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-              <circle cx="8" cy="18" r="2" fill="currentColor" />
-              <circle cx="16" cy="18" r="2" fill="currentColor" />
-              <path d="M9 10H15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
+            <img src={logo} alt="CarCareHome Logo" className="header-logo-img" />
           </div>
           <div className="brand-copy">
-            <span className="brand-kicker">Chăm xe tại nhà</span>
+           
             <strong>CarCareHome</strong>
           </div>
         </Link>
 
-        <div className="header-center">
-          <nav className="header-nav">
-            {navLinks.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  isActive || (item.to === "/services" && location.pathname.startsWith("/services"))
-                    ? "nav-link active"
-                    : "nav-link"
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+        {/* Mian Navigation - Centered */}
+        <nav className="header-nav-center">
+          {navLinks.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                isActive || (item.to === "/services" && location.pathname.startsWith("/services"))
+                  ? "nav-link active"
+                  : "nav-link"
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
 
-          <form className="header-search" onSubmit={handleSearchSubmit}>
+        {/* Right Actions - Search, Notifications, Auth */}
+        <div className="header-actions">
+          <form className="header-search-compact" onSubmit={handleSearchSubmit}>
             <Search size={18} />
             <input
               type="search"
-              placeholder="Tìm dịch vụ, vệ sinh nội thất, ceramic..."
+              placeholder="Tìm kiếm..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
           </form>
-        </div>
 
-        <div className="header-actions">
+          <button className="icon-btn notification-btn" aria-label="Thông báo">
+            <Bell size={20} />
+            <span className="notification-badge"></span>
+          </button>
+
           {user ? (
             <div className="header-user-group">
               <button type="button" className="header-user-button" onClick={() => setShowDropdown((prev) => !prev)}>
@@ -175,7 +176,7 @@ function Header() {
           ) : (
             <div className="auth-actions">
               <Link to="/login" className="auth-link subtle">Đăng nhập</Link>
-              <Link to="/register" className="auth-link primary">Tạo tài khoản</Link>
+              <Link to="/register" className="auth-link primary">Đăng ký</Link>
             </div>
           )}
 
@@ -222,6 +223,19 @@ function Header() {
               <LayoutDashboard size={18} />
               {portalLink.label}
             </NavLink>
+          )}
+
+          {!user && (
+            <>
+              <Link to="/login" className="mobile-nav-link" style={{ marginTop: '8px' }}>
+                <UserCircle2 size={18} />
+                Đăng nhập
+              </Link>
+              <Link to="/register" className="mobile-nav-link" style={{ color: '#31a4ff' }}>
+                <UserCircle2 size={18} />
+                Tạo tài khoản
+              </Link>
+            </>
           )}
         </nav>
       </div>

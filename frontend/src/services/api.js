@@ -154,7 +154,10 @@ export const getStaffBookings = async (email) => {
 };
 
 export const assignStaff = async (bookingId, staffId) => {
-  return fetchWithAuth(`/bookings/${bookingId}/assign?staffId=${staffId}`, {
+  const staffParams = Array.isArray(staffId) 
+    ? staffId.map(id => `staffId=${id}`).join('&') 
+    : `staffId=${staffId}`;
+  return fetchWithAuth(`/bookings/${bookingId}/assign?${staffParams}`, {
     method: "PUT"
   });
 };
@@ -174,6 +177,11 @@ export const getUsers = async () => {
 
 export const getCategories = async () => {
   const res = await fetch(`${API_URL}/categories`);
+  return res.json();
+};
+
+export const getFeaturedCategories = async () => {
+  const res = await fetch(`${API_URL}/categories/featured`);
   return res.json();
 };
 
@@ -240,6 +248,11 @@ export const addReview = async (bookingId, rating, comment) => {
   });
 };
 
+export const getReviews = async () => {
+  const res = await fetch(`${API_URL}/bookings/reviews`);
+  return res.json();
+};
+
 // --- LEAVE REQUEST APIs ---
 export const createLeaveRequest = async (email, data) => {
   return fetchWithAuth(`/leaves?email=${email}`, {
@@ -283,6 +296,27 @@ export const updateUserRole = async (userId, role) => {
 export const deleteUser = async (userId) => {
   return fetchWithAuth(`/users/${userId}`, {
     method: "DELETE"
+  });
+};
+
+// --- PAYMENT APIs ---
+export const processCashPayment = async (bookingId) => {
+  return fetchWithAuth(`/payments/${bookingId}/cash`, {
+    method: "PUT"
+  });
+};
+
+export const createMomoRemainingPayment = async (bookingId) => {
+  const res = await fetch(`${API_URL}/momo/create-remaining-payment/${bookingId}`, {
+    method: 'POST',
+    headers: authHeaders()
+  });
+  return res.json();
+};
+
+export const getPaymentHistory = async (bookingId) => {
+  return fetchWithAuth(`/payments/${bookingId}/history`, {
+    method: "GET"
   });
 };
 

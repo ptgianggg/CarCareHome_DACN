@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import defaultBannerImg from "@/assets/banner.png";
 import { useSystem } from "@/context/SystemContext";
-import { getCategories, getServices } from "@/services/api";
+import { getCategories, getServices, getFeaturedCategories, getReviews } from "@/services/api";
 import "./Home.css";
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:8089/api").replace(/\/api\/?$/, "");
@@ -24,6 +24,8 @@ function Home() {
   const { settings } = useSystem();
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [featuredCategories, setFeaturedCategories] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,13 +33,20 @@ function Home() {
 
     const loadData = async () => {
       try {
-        const [serviceData, categoryData] = await Promise.all([getServices(), getCategories()]);
+        const [serviceData, categoryData, featuredData, reviewData] = await Promise.all([
+          getServices(), 
+          getCategories(),
+          getFeaturedCategories(),
+          getReviews()
+        ]);
         if (ignore) {
           return;
         }
-
+        
         setServices(Array.isArray(serviceData) ? serviceData.filter((item) => item.active !== false) : []);
         setCategories(Array.isArray(categoryData) ? categoryData : []);
+        setFeaturedCategories(Array.isArray(featuredData) ? featuredData : []);
+        setReviews(Array.isArray(reviewData) ? reviewData : []);
       } catch (error) {
         console.error("Load home data failed:", error);
       } finally {
@@ -68,18 +77,18 @@ function Home() {
   const bannerImg = getImageUrl(settings?.bannerUrl || FALLBACK_IMAGE);
 
   const featuredServices = useMemo(() => {
-    return services.slice(0, 6);
+    return services.slice(0, 4);
   }, [services]);
 
   const categoryHighlights = useMemo(() => {
-    return categories
+    // Show top 3 booked categories
+    return featuredCategories
       .map((category) => ({
         ...category,
         count: services.filter((service) => service.category === category.name).length
       }))
-      .filter((category) => category.count > 0)
-      .slice(0, 4);
-  }, [categories, services]);
+      .slice(0, 3);
+  }, [featuredCategories, services]);
 
   const stats = useMemo(
     () => [
@@ -120,12 +129,11 @@ function Home() {
         <div className="home-hero-overlay" />
 
         <div className="page-shell home-hero-content">
-          <div className="hero-copy surface-card">
-            <span className="tag-eyebrow">Chăm sóc xe tại nhà, gọn và rõ</span>
-            <h1>{settings?.bannerTitle || "Đặt lịch chăm sóc xe tại nhà với trải nghiệm mượt hơn ở từng bước"}</h1>
+          <div className="hero-copy hero-glass-card">
+            <span className="hero-badge">Dịch vụ 5 sao tận nơi</span>
+            <h1>{settings?.bannerTitle || "Chăm sóc xe chuyên nghiệp tại nhà"}</h1>
             <p>
-              {settings?.bannerSubtitle ||
-                "Từ khám phá dịch vụ, chọn thời gian đến theo dõi thanh toán và lịch sử xử lý, mọi điểm chạm đều được sắp xếp để bạn thao tác nhanh và ít bối rối hơn."}
+              {settings?.bannerSubtitle || "Tiết kiệm thời gian, tối ưu chất lượng. Trải nghiệm quy trình chăm sóc xe đẳng cấp ngay tại gara của bạn."}
             </p>
 
             <div className="hero-cta-row">
@@ -138,60 +146,44 @@ function Home() {
                 <ArrowRight size={18} />
               </button>
 
-              <button type="button" className="hero-secondary-btn" onClick={() => navigate("/services")}>Xem bảng dịch vụ</button>
-            </div>
-
-            <div className="hero-proof-row">
-              <div className="hero-proof-item">
-                <ShieldCheck size={18} />
-                <span>Luồng đặt lịch và thanh toán rõ ràng</span>
-              </div>
-              <div className="hero-proof-item">
-                <Clock3 size={18} />
-                <span>Thao tác nhanh trên di động</span>
-              </div>
-              <div className="hero-proof-item">
-                <MapPinHouse size={18} />
-                <span>Thiết kế cho dịch vụ tận nơi</span>
-              </div>
+              <button type="button" className="hero-secondary-btn" onClick={() => navigate("/services")}>Khám phá dịch vụ</button>
             </div>
           </div>
 
-          <div className="hero-summary-grid">
-            {stats.map((item) => (
-              <article key={item.label} className="hero-stat-card surface-card">
-                <strong>{item.value}</strong>
-                <span>{item.label}</span>
-              </article>
-            ))}
-          </div>
+
         </div>
       </section>
 
       <section className="page-shell home-section-grid">
-        <div className="home-section-heading">
-          <span className="tag-eyebrow">Điểm nổi bật</span>
-          <h2 className="section-heading">Trang chủ giờ không chỉ để nhìn, mà dẫn người dùng đi đến đúng thao tác tiếp theo</h2>
+        <div className="home-section-heading centered">
+          <span className="hero-badge">Ưu điểm vượt trội</span>
+          <h2 className="section-heading">Tối ưu hóa hành trình chăm sóc xe</h2>
           <p>
-            Các khối dưới đây được tổ chức để người mới cũng hiểu nhanh: có gì để đặt, vì sao nên dùng, và bước tiếp theo là gì.
+            Hệ thống thông minh giúp bạn tiết kiệm thời gian và trải nghiệm dịch vụ chuyên nghiệp nhất.
           </p>
         </div>
 
         <div className="home-highlight-grid">
           <article className="surface-card highlight-card">
-            <Sparkles size={20} />
-            <h3>Dịch vụ được gom theo mục đích</h3>
-            <p>Rửa xe, nội thất, ceramic hay kiểm tra tổng quát đều có đường dẫn khám phá rõ ràng.</p>
+            <div className="highlight-icon-wrap">
+              <Sparkles size={24} />
+            </div>
+            <h3>Phân loại thông minh</h3>
+            <p>Khám phá đúng nhu cầu chỉ trong vài giây với danh mục dịch vụ khoa học.</p>
           </article>
           <article className="surface-card highlight-card">
-            <CalendarClock size={20} />
-            <h3>Đi từ trang chủ đến đặt lịch nhanh hơn</h3>
-            <p>CTA chính và các khối gợi ý đều đưa người dùng tới đúng màn tiếp theo thay vì chỉ xem cho đẹp.</p>
+            <div className="highlight-icon-wrap">
+              <CalendarClock size={24} />
+            </div>
+            <h3>Đặt lịch siêu tốc</h3>
+            <p>Tự động hóa vị trí và thời gian, hoàn tất đặt lịch chỉ với vài cú chạm.</p>
           </article>
           <article className="surface-card highlight-card">
-            <Wrench size={20} />
-            <h3>Ưu tiên hành trình thực tế</h3>
-            <p>Từ xem dịch vụ đến theo dõi lịch hẹn, các điểm chạm được giữ nhất quán về tông chữ, khoảng cách và trạng thái.</p>
+            <div className="highlight-icon-wrap">
+              <Wrench size={24} />
+            </div>
+            <h3>Hành trình nhất quán</h3>
+            <p>Đồng bộ tuyệt đối từ lúc đặt lịch đến khi thanh toán và theo dõi kết quả.</p>
           </article>
         </div>
       </section>
@@ -215,108 +207,122 @@ function Home() {
             >
               <div className="category-card-top">
                 <div className="category-icon-wrap">
-                  {category.icon ? <img src={getImageUrl(category.icon)} alt={category.name} /> : <Sparkles size={20} />}
+                  {category.icon ? (
+                    <img src={category.icon} alt={category.name} className="category-icon-img" />
+                  ) : (
+                    <Sparkles size={20} />
+                  )}
                 </div>
-                <span>{category.count} dịch vụ</span>
+                <span className="category-service-count">{category.count} dịch vụ</span>
               </div>
               <h3>{category.name}</h3>
-              <p>Một lối vào gọn để xem đúng nhóm dịch vụ bạn đang cần cho chiếc xe hiện tại.</p>
+              <p>Khám phá các gói dịch vụ chuyên nghiệp nhất cho dòng xe của bạn.</p>
             </button>
           ))}
 
           {!loading && categoryHighlights.length === 0 && (
             <div className="surface-card empty-home-card">
-              <h3>Danh mục sẽ hiển thị tại đây</h3>
-              <p>Hệ thống chưa có đủ dữ liệu để gợi ý danh mục nổi bật, nhưng bạn vẫn có thể vào bảng dịch vụ để xem tất cả.</p>
+              <h3>Danh mục nổi bật</h3>
+              <p>Hiện chưa có đủ dữ liệu booking để hiển thị danh mục thịnh hành.</p>
             </div>
           )}
         </div>
       </section>
 
-      <section className="page-shell home-section-grid">
+      <section className="page-shell home-section-grid home-services-grid-section">
         <div className="home-section-heading split">
           <div>
-            <span className="tag-eyebrow">Dành cho quyết định nhanh</span>
-            <h2 className="section-heading">Một vài dịch vụ đang sẵn sàng nhận lịch</h2>
+            <span className="hero-badge">Dành cho bạn</span>
+            <h2 className="section-heading">Dịch vụ đang sẵn sàng</h2>
           </div>
-          <button type="button" className="section-link-btn" onClick={() => navigate("/booking")}>Bắt đầu đặt lịch</button>
+          <button type="button" className="section-link-btn" onClick={() => navigate("/services")}>
+            Tất cả dịch vụ <ArrowRight size={16} />
+          </button>
         </div>
 
-        <div className="home-service-grid">
+        <div className="home-service-grid-4">
           {featuredServices.map((service) => (
-            <article key={service.id} className="surface-card home-service-card">
-              <div className="service-card-media">
+            <article 
+              key={service.id} 
+              className="surface-card service-v-card clickable-card"
+              onClick={() => navigate(`/services/detail/${service.id}`)}
+            >
+              <div className="v-card-media">
                 <img
                   src={getImageUrl(service.imageUrls?.[0] || service.imageUrl || FALLBACK_IMAGE)}
                   alt={service.name}
                 />
+                <div className="v-card-badge">{service.category || "Hot"}</div>
               </div>
-              <div className="service-card-content">
-                <div className="service-card-meta">
-                  <span>{service.category || "Chăm sóc xe"}</span>
-                  <span>{Number(service.price || 0).toLocaleString()} đ</span>
-                </div>
+              
+              <div className="v-card-content">
+                <div className="v-card-price">{Number(service.price).toLocaleString()}đ</div>
                 <h3>{service.name}</h3>
-                <p>{service.description || "Gói dịch vụ được tối ưu cho trải nghiệm chăm sóc xe tại nhà, minh bạch về nội dung và chi phí."}</p>
-                <div className="service-card-actions">
-                  <button type="button" className="inline-btn" onClick={() => navigate(`/services/detail/${service.id}`)}>Xem chi tiết</button>
-                  <button type="button" className="inline-btn secondary" onClick={() => navigate(`/booking?service_id=${service.id}`)}>Đặt lịch</button>
+                <p>{service.description?.substring(0, 60)}...</p>
+                
+                <div className="v-card-footer">
+                  <button 
+                    type="button" 
+                    className="v-btn-primary" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/booking?service_id=${service.id}`);
+                    }}
+                  >
+                    <span>Đặt lịch ngay</span> <ArrowRight size={16} className="btn-icon" />
+                  </button>
                 </div>
               </div>
             </article>
           ))}
-
-          {!loading && featuredServices.length === 0 && (
-            <div className="surface-card empty-home-card">
-              <h3>Chưa có dịch vụ nổi bật</h3>
-              <p>Khi dữ liệu dịch vụ được thêm đầy đủ, khu vực này sẽ giúp người dùng bắt đầu nhanh hơn ngay từ trang đầu.</p>
-            </div>
-          )}
         </div>
       </section>
 
-      <section className="page-shell home-process-grid">
-        <article className="surface-card process-card">
-          <span className="tag-eyebrow">Quy trình mới</span>
-          <h2 className="section-heading">Ba bước để hoàn tất một lịch hẹn rõ ràng hơn</h2>
-          <div className="process-list">
-            {journeySteps.map((step, index) => (
-              <div key={step.title} className="process-item">
-                <div className="process-index">0{index + 1}</div>
-                <div>
-                  <h3>{step.title}</h3>
-                  <p>{step.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
+      <section className="page-shell home-section-grid home-reviews-section">
+        <div className="home-section-heading centered">
+          <span className="hero-badge">Trải nghiệm thực tế</span>
+          <h2 className="section-heading">Khách hàng nói gì về chúng tôi</h2>
+          <p>Sự hài lòng của khách hàng là động lực lớn nhất để CarCareHome không ngừng hoàn thiện.</p>
+        </div>
 
-        <article className="surface-card promise-card">
-          <span className="tag-eyebrow">Cam kết trải nghiệm</span>
-          <h2 className="section-heading">Mỗi màn đều phải trả lời được câu hỏi “tiếp theo tôi làm gì?”</h2>
-          <div className="promise-list">
-            {promises.map((item) => (
-              <div key={item} className="promise-item">
-                <CheckCircle2 size={18} />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-          <div className="promise-rating">
-            <div>
-              <strong>4.9/5</strong>
-              <span>cảm giác mượt ở hành trình người dùng</span>
+        <div className="home-reviews-grid">
+          {reviews.length > 0 ? (
+            reviews.slice(0, 3).map((review) => (
+              <article key={review.id} className="surface-card review-card">
+                <div className="review-card-header">
+                  <div className="review-user-info">
+                    <div className="user-avatar-placeholder">
+                      {review.customerName?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3>{review.customerName}</h3>
+                      <div className="review-stars">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            size={14} 
+                            fill={i < (review.rating || 5) ? "#fbbf24" : "none"} 
+                            stroke={i < (review.rating || 5) ? "#fbbf24" : "rgba(255,255,255,0.2)"} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <Sparkles size={20} className="review-quote-icon" />
+                </div>
+                <p className="review-text">"{review.reviewComment || "Dịch vụ rất chuyên nghiệp, nhân viên nhiệt tình. Tôi rất hài lòng!"}"</p>
+                <div className="review-footer">
+                  <span className="review-service-tag">{review.serviceType}</span>
+                  <span className="review-date">{review.bookingDate}</span>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="surface-card empty-reviews-card">
+              <p>Chưa có đánh giá nào. Hãy là người đầu tiên trải nghiệm dịch vụ của chúng tôi!</p>
             </div>
-            <div className="rating-stars">
-              <Star size={18} fill="currentColor" />
-              <Star size={18} fill="currentColor" />
-              <Star size={18} fill="currentColor" />
-              <Star size={18} fill="currentColor" />
-              <Star size={18} fill="currentColor" />
-            </div>
-          </div>
-        </article>
+          )}
+        </div>
       </section>
     </div>
   );

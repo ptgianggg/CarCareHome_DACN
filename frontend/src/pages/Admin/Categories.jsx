@@ -197,11 +197,11 @@ function CategoryManagement() {
                                 </span>
                                 <span style={{ fontWeight: '800', fontSize: '1.2rem', color: '#fff' }}>{cat.name}</span>
                                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                    <button onClick={() => onEdit(cat)} style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '10px', color: '#fff', cursor: 'pointer' }}>
-                                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    <button onClick={() => onEdit(cat)} style={{ width: '44px', height: '44px', background: 'rgba(255,255,255,0.05)', borderRadius: '14px', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                     </button>
-                                    <button onClick={() => onDelete(cat.id)} style={{ width: '40px', height: '40px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '10px', color: '#ef4444', cursor: 'pointer' }}>
-                                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                    <button onClick={() => onDelete(cat.id)} style={{ width: '44px', height: '44px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '14px', color: '#ef4444', border: 'none', cursor: 'pointer' }}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
                                     </button>
                                 </div>
                             </div>

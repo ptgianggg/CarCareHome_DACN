@@ -40,4 +40,7 @@ public class SystemSetting {
     private String contactPhone;
     private String contactEmail;
     private String contactAddress;
+    // Shop Geolocation
+    private Double shopLat;
+    private Double shopLng;
 }

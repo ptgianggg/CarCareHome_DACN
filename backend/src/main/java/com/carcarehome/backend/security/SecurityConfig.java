@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/services/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/categories/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/bookings/reviews", "/api/booking/reviews").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/system-settings").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/system-settings/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
@@ -39,7 +40,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/uploads/**").hasRole("ADMIN")
                 .requestMatchers("/api/system-settings/**").hasRole("ADMIN")
-                .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+                .requestMatchers("/api/leaves/**").hasAnyRole("STAFF", "ADMIN")
+                .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

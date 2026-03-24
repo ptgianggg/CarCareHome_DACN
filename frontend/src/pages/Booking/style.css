@@ -77,7 +77,7 @@
 .step {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   color: var(--p-text-dim);
   transition: var(--p-transition);
@@ -92,7 +92,7 @@
   height: 40px;
   border-radius: 50%;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   border: 2px solid var(--p-glass-border);
   background: var(--p-glass);
@@ -111,8 +111,8 @@
   flex: 1;
   height: 2px;
   background: var(--p-glass-border);
-  margin: 0 20px;
-  margin-bottom: 30px; /* offset for text */
+  margin: 20px 20px 0; /* Align with center of 40px circle */
+  transition: var(--p-transition);
 }
 
 .step-line.filled {
@@ -351,10 +351,21 @@
   color: var(--p-text-dim);
 }
 
-.error-text {
+.error-text, .input-error-msg {
   color: #f87171;
-  font-size: 0.85rem;
-  margin-top: 10px;
+  font-size: 0.8rem;
+  margin-top: 6px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.input-hint-msg {
+  color: var(--p-text-dim);
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-style: italic;
 }
 
 /* Navigation Buttons */

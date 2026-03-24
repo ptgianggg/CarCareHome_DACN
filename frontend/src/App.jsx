@@ -8,6 +8,7 @@ import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
 import ForgotPassword from "@/pages/Auth/ForgotPassword";
 import ResetPassword from "@/pages/Auth/ResetPassword";
+import Forbidden from "@/pages/Auth/Forbidden";
 import Home from "@/pages/Home/Home";
 import Profile from "@/pages/Profile/Profile";
 import Booking from "@/pages/Booking/Booking";
@@ -29,20 +30,51 @@ import AccountManagement from "@/pages/Admin/AccountManagement";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const ProtectedRoute = ({ children, requiredRole }) => {
-  const { isAuthenticated, loading, user, isAdmin } = useAuth();
+  const { isAuthenticated, loading, user, isAdmin, isStaff } = useAuth();
   
   if (loading) return null;
   
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   
   if (requiredRole === "ADMIN" && !isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/forbidden" replace />;
   }
 
-  if (requiredRole === "STAFF" && user?.role !== "STAFF" && user?.role !== "ROLE_STAFF" && !isAdmin) {
-    return <Navigate to="/" replace />;
+  if (requiredRole === "STAFF" && !isStaff) {
+    // Nếu user là Admin, họ có thể vào Staff route không? 
+    // Người dùng phàn nàn "đang ở admin tôi /staff vẫn qua được" -> Vậy Admin không được vào Staff route.
+    return <Navigate to="/forbidden" replace />;
   }
   
+  return children;
+};
+
+const UserRoute = ({ children, requireAuth = false }) => {
+  const { isAuthenticated, loading, isAdmin, isStaff } = useAuth();
+  
+  if (loading) return null;
+  
+  // 1. If page requires auth and user is NOT logged in -> Login
+  if (requireAuth && !isAuthenticated) return <Navigate to="/login" replace />;
+  
+  // 2. If user IS logged in, check if they are Admin/Staff -> Redirect away from User UI
+  if (isAuthenticated) {
+    if (isAdmin) return <Navigate to="/admin/booking" replace />;
+    if (isStaff) return <Navigate to="/staff/tasks" replace />;
+  }
+  
+  // 3. Otherwise (Guest or regular User) -> Allow
+  return children;
+};
+
+const AuthRoute = ({ children }) => {
+  const { isAuthenticated, loading, isAdmin, isStaff } = useAuth();
+  if (loading) return null;
+  if (isAuthenticated) {
+    if (isAdmin) return <Navigate to="/admin/booking" replace />;
+    if (isStaff) return <Navigate to="/staff/tasks" replace />;
+    return <Navigate to="/" replace />;
+  }
   return children;
 };
 
@@ -50,8 +82,8 @@ function App() {
   if (!GOOGLE_CLIENT_ID) {
     return (
       <div style={{ color: "white", padding: "20px" }}>
-        <h2>Lá»—i: Thiáº¿u Google Client ID trong file .env</h2>
-        <p>Vui lÃ²ng kiá»ƒm tra file <code>frontend/.env</code></p>
+        <h2>Lỗi: Thiếu Google Client ID trong file .env</h2>
+        <p>Vui lòng kiểm tra file <code>frontend/.env</code></p>
       </div>
     );
   }
@@ -63,28 +95,32 @@ function App() {
           <Toaster position="top-right" reverseOrder={false} />
           <BrowserRouter>
             <Routes>
-              {/* Trang cÃ´ng khai sá»­ dá»¥ng MainLayout */}
+              {/* --- USER / PUBLIC ROUTES --- */}
               <Route path="/" element={<MainLayout />}>
-                <Route index element={<Home />} />
-                <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="booking" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
-                <Route path="my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+                <Route index element={<UserRoute><Home /></UserRoute>} />
+                
+                {/* Public but user-only (redirects admin/staff) */}
+                <Route path="services" element={<UserRoute><ServiceList /></UserRoute>} />
+                <Route path="services/:categoryName" element={<UserRoute><ServiceList /></UserRoute>} />
+                <Route path="services/detail/:id" element={<UserRoute><ServiceDetail /></UserRoute>} />
+
+                {/* Private user-only (requires login + redirects admin/staff) */}
+                <Route path="profile" element={<UserRoute requireAuth><Profile /></UserRoute>} />
+                <Route path="booking" element={<UserRoute requireAuth><Booking /></UserRoute>} />
+                <Route path="my-bookings" element={<UserRoute requireAuth><MyBookings /></UserRoute>} />
                 <Route path="payment/callback" element={<PaymentCallback />} />
               </Route>
 
-              {/* CÃ¡c trang Auth */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              {/* --- AUTH ROUTES --- */}
+              <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
+              <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/forbidden" element={<Forbidden />} />
               
-              {/* CÃ¡c trang dá»‹ch vá»¥ */}
-              <Route path="/services" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
-              <Route path="/services/:categoryName" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
-              <Route path="/services/detail/:id" element={<ProtectedRoute><ServiceDetail /></ProtectedRoute>} />
-              
-              {/* CÃ¡c trang Admin */}
+              {/* --- ADMIN ROUTES --- */}
               <Route path="/admin" element={<ProtectedRoute requiredRole="ADMIN"><AdminLayout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="booking" replace />} />
                 <Route path="services" element={<ServiceManagement />} />
                 <Route path="categories" element={<CategoriesManagement />} />
                 <Route path="booking" element={<BookingManagement />} />
@@ -93,15 +129,15 @@ function App() {
                 <Route path="settings" element={<SystemSettings />} />
               </Route>
 
-              {/* CÃ¡c trang Staff */}
+              {/* --- STAFF ROUTES --- */}
               <Route path="/staff" element={<ProtectedRoute requiredRole="STAFF"><StaffLayout /></ProtectedRoute>}>
                 <Route index element={<Navigate to="tasks" replace />} />
                 <Route path="tasks" element={<MyTasks />} />
                 <Route path="leave" element={<LeaveRequest />} />
+                <Route path="profile" element={<Profile />} />
               </Route>
-
               
-              <Route path="*" element={<Navigate to="/login" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
         </SystemProvider>

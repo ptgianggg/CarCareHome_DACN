@@ -58,11 +58,7 @@ const AdminLayout = () => {
           </NavLink>
         </nav>
         
-        <div style={{ marginTop: "auto", paddingTop: "20px" }}>
-          <button className="primary-button" onClick={() => navigate("/")} style={{ width: "100%", padding: "12px", fontSize: "0.85rem" }}>
-            Ra trang web
-          </button>
-        </div>
+
       </aside>
 
       {/* MAIN CONTENT AREA */}

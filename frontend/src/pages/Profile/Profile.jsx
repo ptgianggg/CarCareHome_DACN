@@ -112,8 +112,8 @@ const Profile = () => {
       <section className="profile-hero page-shell">
         <div className="profile-hero-copy">
           <span className="tag-eyebrow">Tài khoản cá nhân</span>
-          <h1>Giữ thông tin hồ sơ rõ ràng để các bước đặt lịch và xác nhận diễn ra mượt hơn.</h1>
-          <p>Cập nhật tên, số điện thoại và ảnh đại diện để đội ngũ hỗ trợ nhận đúng người, đúng lịch và đúng ngữ cảnh.</p>
+          
+          
         </div>
       </section>
 
@@ -148,10 +148,7 @@ const Profile = () => {
             <span className="profile-badge">{roleLabel}</span>
 
             <div className="profile-meta-list">
-              <div className="profile-meta-item">
-                <UserRound size={16} />
-                <span>Hồ sơ được dùng để đồng bộ lịch hẹn và xác nhận thanh toán.</span>
-              </div>
+              
               <div className="profile-meta-item">
                 <Phone size={16} />
                 <span>{formData.phone || "Thêm số điện thoại để đội ngũ hỗ trợ liên hệ dễ hơn."}</span>
@@ -167,13 +164,9 @@ const Profile = () => {
             <div className="profile-main-head">
               <div>
                 <span className="tag-eyebrow">Thông tin cơ bản</span>
-                <h2>Chỉnh sửa hồ sơ</h2>
-                <p>Thay đổi ở đây sẽ được dùng cho các màn booking, lịch hẹn và khu vực tài khoản.</p>
+                
               </div>
-              <div className="profile-assurance">
-                <ShieldCheck size={18} />
-                <span>Dữ liệu được dùng để hiển thị trải nghiệm cá nhân hóa trong ứng dụng.</span>
-              </div>
+             
             </div>
 
             {error && <div className="auth-error">{error}</div>}

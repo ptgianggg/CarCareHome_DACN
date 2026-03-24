@@ -13,6 +13,8 @@ import com.carcarehome.backend.repository.BookingRepository;
 import com.carcarehome.backend.repository.IUserRepository;
 import com.carcarehome.backend.entity.User;
 import com.carcarehome.backend.mapper.BookingMapper;
+import org.springframework.scheduling.annotation.Scheduled;
+import java.time.LocalDateTime;
 
 import com.carcarehome.backend.state.BookingState;
 import com.carcarehome.backend.state.BookingStateFactory;
@@ -41,7 +43,7 @@ public class BookingService {
     }
 
     public List<Booking> getBookingsByStaff(String email) {
-        return bookingRepository.findByAssignedStaffEmailOrderByCreatedAtDesc(email);
+        return bookingRepository.findByAssignedStaffsEmailOrderByCreatedAtDesc(email);
     }
 
     public Booking getBookingById(Long id) {
@@ -58,6 +60,7 @@ public class BookingService {
             booking.setPaymentMethod("MOMO");
             booking.setDepositAmount(booking.getTotalPrice()); // Thanh toán toàn bộ
             booking.setPaymentStatus("UNPAID");
+            booking.setStatus("WAITING_FOR_PAYMENT"); // Shopee-style: Chờ thanh toán
         } else {
             // Mặc định là CASH
             booking.setPaymentMethod("CASH");
@@ -67,9 +70,11 @@ public class BookingService {
                 BigDecimal deposit = booking.getTotalPrice().multiply(new BigDecimal("0.1"));
                 booking.setDepositAmount(deposit);
                 booking.setPaymentStatus("UNPAID"); // Trạng thái là chưa thanh toán cọc
+                booking.setStatus("WAITING_FOR_PAYMENT"); // Phải thanh toán cọc trước
             } else {
                 booking.setDepositAmount(BigDecimal.ZERO);
-                booking.setPaymentStatus("UNPAID"); // Hoặc có thể coi là N/A nếu tiền mặt < 500k
+                booking.setPaymentStatus("UNPAID"); 
+                booking.setStatus("PENDING"); // Đơn nhỏ tiền mặt thì vào thẳng chờ duyệt
             }
         }
         
@@ -82,11 +87,15 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
-    public Booking assignStaff(Long bookingId, Long staffId) {
+    public Booking assignStaff(Long bookingId, List<Long> staffIds) {
         Booking booking = getBookingById(bookingId);
-        User staff = userRepository.findById(staffId)
-                .orElseThrow(() -> new RuntimeException("Staff not found"));
-        booking.setAssignedStaff(staff);
+        
+        // Clear previous and set new multiple staffs
+        booking.getAssignedStaffs().clear();
+        if (staffIds != null && !staffIds.isEmpty()) {
+            List<User> staffs = userRepository.findAllById(staffIds);
+            booking.getAssignedStaffs().addAll(staffs);
+        }
         
         if ("PENDING".equals(booking.getStatus()) || "STAFF_REJECT".equals(booking.getStatus())) {
             BookingState currentState = BookingStateFactory.getState(booking.getStatus());
@@ -141,10 +150,29 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
+    public List<Booking> getAllReviews() {
+        return bookingRepository.findByRatingIsNotNullOrderByUpdatedAtDesc();
+    }
+
     public void updatePaymentStatus(Long bookingId, String status) {
         Booking booking = getBookingById(bookingId);
         booking.setPaymentStatus(status);
+        if ("PAID_FULL".equals(status) || "DEPOSITED".equals(status)) {
+            if ("WAITING_FOR_PAYMENT".equals(booking.getStatus())) {
+                booking.setStatus("PENDING"); // Chuyển sang chờ duyệt sau khi đã thanh toán
+            }
+        }
         bookingRepository.save(booking);
+    }
+
+    @Scheduled(fixedRate = 60000) // Kiểm tra mỗi phút
+    public void cancelExpiredBookings() {
+        LocalDateTime fiveMinsAgo = LocalDateTime.now().minusMinutes(5);
+        List<Booking> expired = bookingRepository.findByStatusAndCreatedAtBefore("WAITING_FOR_PAYMENT", fiveMinsAgo);
+        for (Booking b : expired) {
+            b.setStatus("CANCELLED");
+            bookingRepository.save(b);
+        }
     }
 
     private void mapRequestToEntity(BookingRequest request, Booking booking) {

@@ -23,6 +23,11 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
+    @GetMapping("/featured")
+    public ResponseEntity<List<Category>> getFeaturedCategories() {
+        return ResponseEntity.ok(categoryService.getFeaturedCategories());
+    }
+
     @PostMapping
     public ResponseEntity<?> createCategory(@RequestBody Category category) {
         try {
@@ -35,7 +40,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCategory(@PathVariable Long id, @RequestBody Category details) {
+    public ResponseEntity<?> updateCategory(@PathVariable("id") Long id, @RequestBody Category details) {
         try {
             return categoryService.getCategoryById(id).map(cat -> {
                 cat.setName(details.getName());
@@ -50,7 +55,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
+    public ResponseEntity<?> deleteCategory(@PathVariable("id") Long id) {
         try {
             categoryService.deleteCategory(id);
             return ResponseEntity.ok().build();

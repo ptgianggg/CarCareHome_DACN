@@ -18,7 +18,6 @@ import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:5173")
 public class UserController {
 
     @Autowired
@@ -37,6 +36,8 @@ public class UserController {
             map.put("id", u.getId());
             map.put("name", u.getName());
             map.put("email", u.getEmail());
+            map.put("phone", u.getPhone());
+            map.put("avatar", u.getAvatar());
             map.put("role", Map.of("name", u.getRole() != null ? u.getRole().getName() : "UNKNOWN"));
             return map;
         }).collect(java.util.stream.Collectors.toList());
@@ -54,6 +55,8 @@ public class UserController {
                 map.put("id", u.getId());
                 map.put("name", u.getName());
                 map.put("email", u.getEmail());
+                map.put("phone", u.getPhone());
+                map.put("avatar", u.getAvatar());
                 map.put("role", Map.of("name", u.getRole().getName()));
                 return map;
             }).collect(java.util.stream.Collectors.toList());

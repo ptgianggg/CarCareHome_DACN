@@ -8,7 +8,6 @@ import com.carcarehome.backend.service.LeaveRequestService;
 
 @RestController
 @RequestMapping("/api/leaves")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class LeaveRequestController {
 
     @Autowired

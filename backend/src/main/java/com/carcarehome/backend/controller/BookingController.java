@@ -39,7 +39,7 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
-    public Booking getBookingById(@PathVariable Long id) {
+    public Booking getBookingById(@PathVariable("id") Long id) {
         return bookingService.getBookingById(id);
     }
 
@@ -48,24 +48,24 @@ public class BookingController {
     public Booking createBooking(@RequestBody BookingRequest request) {
         return bookingService.createBooking(request);
     }
-@PutMapping("/{id}")
-    public Booking updateBooking(@PathVariable Long id, @RequestBody BookingRequest request) {
+    @PutMapping("/{id}")
+    public Booking updateBooking(@PathVariable("id") Long id, @RequestBody BookingRequest request) {
         return bookingService.updateBooking(id, request);
     }
 
     @GetMapping("/staff")
-    public List<Booking> getStaffBookings(@RequestParam String email) {
+    public List<Booking> getStaffBookings(@RequestParam("email") String email) {
         return bookingService.getBookingsByStaff(email);
     }
 
     @PutMapping("/{id}/assign")
-    public Booking assignStaff(@PathVariable Long id, @RequestParam Long staffId) {
-        return bookingService.assignStaff(id, staffId);
+    public Booking assignStaff(@PathVariable("id") Long id, @RequestParam("staffId") List<Long> staffIds) {
+        return bookingService.assignStaff(id, staffIds);
     }
 
     @PutMapping("/{id}/status")
     public Booking updateStaffStatus(
-            @PathVariable Long id, 
+            @PathVariable("id") Long id, 
             @RequestBody java.util.Map<String, String> payload) {
         String status = payload.get("status");
         String proofImage = payload.get("proofImage");
@@ -74,15 +74,20 @@ public class BookingController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteBooking(@PathVariable Long id) {
+    public void deleteBooking(@PathVariable("id") Long id) {
         bookingService.deleteBooking(id);
     }
 
     @PutMapping("/{id}/review")
     public Booking addReview(
-            @PathVariable Long id,
-            @RequestParam Integer rating,
-            @RequestParam(required = false) String comment) {
+            @PathVariable("id") Long id,
+            @RequestParam("rating") Integer rating,
+            @RequestParam(value = "comment", required = false) String comment) {
         return bookingService.addReview(id, rating, comment);
+    }
+
+    @GetMapping("/reviews")
+    public List<Booking> getReviews() {
+        return bookingService.getAllReviews();
     }
 }

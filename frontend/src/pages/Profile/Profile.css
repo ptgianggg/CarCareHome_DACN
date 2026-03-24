@@ -62,11 +62,11 @@
   place-items: center;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--accent), #ff934f);
+  background: var(--accent);
   color: #fff;
   font-family: var(--font-display);
   font-size: 3rem;
-  box-shadow: 0 20px 40px rgba(255, 122, 61, 0.24);
+  box-shadow: 0 16px 32px rgba(25, 146, 255, 0.2);
 }
 
 .avatar-img {
@@ -236,8 +236,26 @@
 
 .btn-profile-save {
   border: 0;
-  background: linear-gradient(135deg, var(--accent), #ff934f);
+  background: var(--accent);
   color: #fff;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px 0 rgba(25, 146, 255, 0.39);
+}
+
+.btn-profile-save:hover:not(:disabled) {
+  background: #0077e6;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(25, 146, 255, 0.43);
+}
+
+.btn-profile-save:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-profile-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
 }
 
 .btn-profile-cancel {

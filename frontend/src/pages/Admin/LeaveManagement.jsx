@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { getAllLeaves, updateLeaveStatus } from '@/services/api';
 import toast from 'react-hot-toast';
-import { CalendarOff, CheckCircle, XCircle } from 'lucide-react';
-import './style.css'; // Reusing admin styling
+import ConfirmModal from '@/components/ConfirmModal';
+import { CalendarOff, CheckCircle, XCircle, HelpCircle } from 'lucide-react';
+import './style.css'; 
 
 const LeaveManagement = () => {
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
-
+    const [confirmData, setConfirmData] = useState(null); 
+    
     useEffect(() => {
         fetchLeaves();
     }, []);
@@ -24,16 +26,30 @@ const LeaveManagement = () => {
         }
     };
 
-    const handleUpdateStatus = async (id, status) => {
-        const actionName = status === 'APPROVED' ? 'Duyệt' : 'Từ chối';
-        if (window.confirm(`Bạn có chắc chắn muốn ${actionName} đơn này?`)) {
-            try {
-                await updateLeaveStatus(id, status);
-                toast.success(`Đã ${actionName.toLowerCase()} thành công`);
-                fetchLeaves();
-            } catch {
-                toast.error(`Lỗi thao tác`);
-            }
+    const triggerConfirm = (id, status) => {
+        const isApprove = status === 'APPROVED';
+        setConfirmData({
+            id,
+            status,
+            title: isApprove ? "Duyệt đơn nghỉ" : "Từ chối đơn nghỉ",
+            message: `Bạn có chắc chắn muốn ${isApprove ? 'duyệt' : 'từ chối'} đơn xin nghỉ này không?`,
+            color: isApprove ? "#10b981" : "#ef4444",
+            icon: isApprove ? <CheckCircle size={32} /> : <XCircle size={32} />
+        });
+    };
+
+    const handleUpdateStatus = async () => {
+        if (!confirmData) return;
+        const { id, status } = confirmData;
+        const actionLabel = status === 'APPROVED' ? 'duyệt' : 'từ chối';
+        
+        try {
+            await updateLeaveStatus(id, status);
+            toast.success(`Đã ${actionLabel} thành công`);
+            setConfirmData(null);
+            fetchLeaves();
+        } catch {
+            toast.error(`Lỗi thao tác`);
         }
     };
 
@@ -50,8 +66,8 @@ const LeaveManagement = () => {
         <>
             <header className="topbar">
                 <div>
-                <p className="eyebrow" style={{ color: "var(--admin-primary)", opacity: 0.8 }}>SYSTEM MANAGEMENT</p>
-                <h2 style={{ fontSize: '2.8rem', fontWeight: '900', letterSpacing: '-0.04em', background: 'linear-gradient(to right, #fff, rgba(255,255,255,0.4))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Quản Lý Nghỉ Phép</h2>
+                    <p className="eyebrow" style={{ color: "var(--admin-primary)", opacity: 0.8 }}>SYSTEM MANAGEMENT</p>
+                    <h2 style={{ fontSize: '2.8rem', fontWeight: '900', letterSpacing: '-0.04em', background: 'linear-gradient(to right, #fff, rgba(255,255,255,0.4))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Quản Lý Nghỉ Phép</h2>
                 </div>
             </header>
 
@@ -87,11 +103,11 @@ const LeaveManagement = () => {
                                     <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                                         {l.status === 'PENDING' ? (
                                             <>
-                                                <button onClick={() => handleUpdateStatus(l.id, 'APPROVED')} title="Duyệt" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid #10b981', padding: '8px', borderRadius: '10px', cursor: 'pointer' }}>
-                                                    <CheckCircle size={18} />
+                                                <button onClick={() => triggerConfirm(l.id, 'APPROVED')} title="Duyệt" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', border: '1px solid #10b981', padding: '10px', borderRadius: '12px', cursor: 'pointer', transition: '0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.3)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)'}>
+                                                    <CheckCircle size={20} />
                                                 </button>
-                                                <button onClick={() => handleUpdateStatus(l.id, 'REJECTED')} title="Từ chối" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid #ef4444', padding: '8px', borderRadius: '10px', cursor: 'pointer' }}>
-                                                    <XCircle size={18} />
+                                                <button onClick={() => triggerConfirm(l.id, 'REJECTED')} title="Từ chối" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid #ef4444', padding: '10px', borderRadius: '12px', cursor: 'pointer', transition: '0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}>
+                                                    <XCircle size={20} />
                                                 </button>
                                             </>
                                         ) : (
@@ -104,6 +120,17 @@ const LeaveManagement = () => {
                     </div>
                 </article>
             </section>
+
+            <ConfirmModal 
+                isOpen={!!confirmData}
+                title={confirmData?.title}
+                message={confirmData?.message}
+                onConfirm={handleUpdateStatus}
+                onCancel={() => setConfirmData(null)}
+                confirmText="Xác nhận"
+                color={confirmData?.color}
+                icon={confirmData?.icon}
+            />
         </>
     );
 };

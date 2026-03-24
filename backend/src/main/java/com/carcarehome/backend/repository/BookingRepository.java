@@ -6,6 +6,8 @@ import com.carcarehome.backend.entity.Booking;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(String customerEmail);
-    List<Booking> findByAssignedStaffEmailOrderByCreatedAtDesc(String email);
-    List<Booking> findByAssignedStaffIdOrderByCreatedAtDesc(Long staffId);
+    List<Booking> findByAssignedStaffsEmailOrderByCreatedAtDesc(String email);
+    List<Booking> findByAssignedStaffsIdOrderByCreatedAtDesc(Long staffId);
+    List<com.carcarehome.backend.entity.Booking> findByStatusAndCreatedAtBefore(String status, java.time.LocalDateTime time);
+    List<Booking> findByRatingIsNotNullOrderByUpdatedAtDesc();
 }

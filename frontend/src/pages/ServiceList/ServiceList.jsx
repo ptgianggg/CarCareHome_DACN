@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowRight, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronRight, Home as HomeIcon, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { getCategories, getServices } from "@/services/api";
-import Header from "@/components/Header/Header";
-import Footer from "@/components/Footer/Footer";
 import "./style.css";
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:8089/api").replace(/\/api\/?$/, "");
@@ -139,11 +137,10 @@ function ServiceList() {
     ? selectedCategory
     : searchInput.trim()
       ? `Kết quả cho “${searchInput.trim()}”`
-      : "Bảng dịch vụ chăm sóc xe";
+      : "Dịch vụ chăm sóc xe";
 
   const pageSubtitle = selectedCategory
-    ? "Danh mục đang được lọc theo nhóm dịch vụ để bạn so sánh và chọn nhanh hơn."
-    : "Tìm theo nhu cầu, lọc theo danh mục rồi đi thẳng đến trang chi tiết hoặc màn đặt lịch.";
+   
 
   const buildPath = (category) => {
     const params = new URLSearchParams();
@@ -168,85 +165,88 @@ function ServiceList() {
   if (loading) {
     return (
       <div className="service-list-page">
-        <Header />
-        <main className="service-page-shell page-shell">
           <div className="loading-refined">
             <div className="spinner-heavy" />
             <p>Đang chuẩn bị danh sách dịch vụ phù hợp cho bạn...</p>
           </div>
-        </main>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="service-list-page">
-      <Header />
+    <main className="service-page-shell">
+        <nav className="service-breadcrumb page-shell">
+          <button type="button" onClick={() => navigate("/")}>
+            <HomeIcon size={16} />
+            <span>Trang chủ</span>
+          </button>
+          <ChevronRight size={16} className="separator" />
+          <button
+            type="button"
+            className={!selectedCategory ? "active" : ""}
+            onClick={() => navigate("/services")}
+          >
+            Dịch vụ
+          </button>
+          {selectedCategory && (
+            <>
+              <ChevronRight size={16} className="separator" />
+              <span className="active">{selectedCategory}</span>
+            </>
+          )}
+        </nav>
 
-      <main className="service-page-shell">
         <section className="page-shell service-hero">
           <div className="service-hero-copy">
-            <span className="tag-eyebrow">Khám phá dịch vụ</span>
+           
             <h1>{pageTitle}</h1>
             <p>{pageSubtitle}</p>
           </div>
 
-          <div className="service-hero-summary surface-card">
-            <div>
+          <div className="service-hero-stats surface-card">
+            <div className="stat-item">
               <strong>{totalVisibleServices}</strong>
-              <span>Dịch vụ đang hiển thị</span>
+              <span>Dịch vụ phù hợp</span>
             </div>
-            <div>
+            <div className="stat-divider" />
+            <div className="stat-item">
               <strong>{categoryOptions.length}</strong>
-              <span>Danh mục đang hoạt động</span>
+              <span>Biến thể danh mục</span>
             </div>
           </div>
         </section>
 
         <section className="page-shell service-toolbar">
-          <form className="service-search-form surface-card" onSubmit={handleSearchSubmit}>
-            <label htmlFor="service-search" className="service-search-label">
-              <Search size={18} />
-              <span>Tìm theo tên dịch vụ hoặc mô tả</span>
-            </label>
-            <div className="service-search-row">
-              <input
-                id="service-search"
-                type="search"
-                value={searchInput}
-                placeholder="Ví dụ: rửa xe, nội thất, ceramic..."
-                onChange={(event) => setSearchInput(event.target.value)}
-              />
-              <button type="submit">Áp dụng tìm kiếm</button>
-            </div>
+          <form className="service-search-bar surface-card" onSubmit={handleSearchSubmit}>
+            <Search size={18} />
+            <input
+              type="search"
+              value={searchInput}
+              placeholder="Tìm theo tên dịch vụ hoặc tính năng..."
+              onChange={(event) => setSearchInput(event.target.value)}
+            />
+            <button type="submit">Tìm kiếm</button>
           </form>
 
-          <div className="service-filter-card surface-card">
-            <div className="service-filter-head">
-              <SlidersHorizontal size={18} />
-              <span>Lọc theo danh mục</span>
-            </div>
-            <div className="service-filter-actions">
+          <div className="service-filter-scroller">
+            <button
+              type="button"
+              className={!selectedCategory ? "category-pill active" : "category-pill"}
+              onClick={() => navigate(buildPath(""))}
+            >
+              Tất cả
+            </button>
+            {categoryOptions.map((category) => (
               <button
+                key={category.id}
                 type="button"
-                className={!selectedCategory ? "category-pill active" : "category-pill"}
-                onClick={() => navigate(buildPath(""))}
+                className={selectedCategory === category.name ? "category-pill active" : "category-pill"}
+                onClick={() => navigate(buildPath(category.name))}
               >
-                Tất cả
+                {category.name}
+                <span className="count">{category.count}</span>
               </button>
-              {categoryOptions.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  className={selectedCategory === category.name ? "category-pill active" : "category-pill"}
-                  onClick={() => navigate(buildPath(category.name))}
-                >
-                  {category.name}
-                  <span>{category.count}</span>
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
         </section>
 
@@ -266,9 +266,6 @@ function ServiceList() {
                     <span className="tag-eyebrow">{group.items.length} dịch vụ đang mở</span>
                     <h2>{group.name}</h2>
                   </div>
-                  <button type="button" className="section-link-btn" onClick={() => navigate(buildPath(group.name))}>
-                    Xem riêng danh mục này
-                  </button>
                 </header>
 
                 <div className="service-card-grid">
@@ -304,10 +301,7 @@ function ServiceList() {
           )}
         </section>
       </main>
-
-      <Footer />
-    </div>
-  );
-}
+    );
+  }
 
 export default ServiceList;

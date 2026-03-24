@@ -27,7 +27,7 @@ class SuccessState implements BookingState {
     @Override
     public void reject(Booking booking) {
         booking.setStatus("STAFF_REJECT");
-        booking.setAssignedStaff(null);
+        booking.getAssignedStaffs().clear();
     }
     @Override
     public String getStatusName() { return "SUCCESS"; }
@@ -36,15 +36,39 @@ class SuccessState implements BookingState {
 class InProgressState implements BookingState {
     @Override
     public void next(Booking booking) {
-        booking.setStatus("COMPLETED");
+        // Sau khi KTV hoàn thành → chuyển sang chờ thanh toán cuối
+        // Nếu đã thanh toán đủ rồi (MoMo trả hết) thì vào thẳng COMPLETED
+        if ("PAID_FULL".equals(booking.getPaymentStatus())) {
+            booking.setStatus("COMPLETED");
+            booking.setCompletedAt(java.time.LocalDateTime.now());
+        } else {
+            booking.setStatus("AWAITING_FINAL_PAYMENT");
+        }
     }
     @Override
     public void cancel(Booking booking) {
-        // Typically can't cancel if in progress without penalty, but for now:
         booking.setStatus("CANCEL");
     }
     @Override
     public String getStatusName() { return "IN_PROGRESS"; }
+}
+
+class AwaitingFinalPaymentState implements BookingState {
+    @Override
+    public void next(Booking booking) {
+        // Chỉ cho phép chuyển sang COMPLETED khi đã thanh toán đủ
+        if (!"PAID_FULL".equals(booking.getPaymentStatus())) {
+            throw new IllegalStateException("Chưa thanh toán đủ. Vui lòng thanh toán trước khi hoàn tất đơn hàng.");
+        }
+        booking.setStatus("COMPLETED");
+        booking.setCompletedAt(java.time.LocalDateTime.now());
+    }
+    @Override
+    public void cancel(Booking booking) {
+        booking.setStatus("CANCEL");
+    }
+    @Override
+    public String getStatusName() { return "AWAITING_FINAL_PAYMENT"; }
 }
 
 class FinalState implements BookingState {
