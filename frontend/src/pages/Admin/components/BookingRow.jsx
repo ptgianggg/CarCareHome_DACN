@@ -12,6 +12,18 @@ function statusTone(status) {
   return "active";
 }
 
+const translateStatus = (st) => {
+  const map = {
+    "PENDING": "ĐANG CHỜ",
+    "SUCCESS": "ĐÃ GIAO VIỆC",
+    "IN_PROGRESS": "ĐANG THỰC HIỆN",
+    "COMPLETED": "HOÀN TẤT",
+    "CANCEL": "ĐÃ HỦY",
+    "STAFF_REJECT": "NHÂN VIÊN TỪ CHỐI"
+  };
+  return map[st] || st;
+};
+
 const BookingRow = ({ b, onDoubleClick }) => {
   return (
     <div 
@@ -36,7 +48,7 @@ const BookingRow = ({ b, onDoubleClick }) => {
       <span style={{ fontWeight: '900', color: '#3b82f6', fontSize: '1.2rem', justifyContent: 'flex-end' }}>{formatPrice(b.totalPrice)}</span>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <span className={`status ${statusTone(b.status)}`} style={{ padding: '8px 16px', borderRadius: '12px', fontWeight: '900', fontSize: '0.7rem' }}>
-          {b.status === "SUCCESS" ? "THÀNH CÔNG" : b.status === "CANCEL" ? "ĐÃ HỦY" : b.status}
+          {translateStatus(b.status)}
         </span>
       </div>
     </div>

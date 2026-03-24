@@ -67,7 +67,7 @@ function Header() {
                 <div className="user-avatar">
                   {user.avatar ? (
                     <img
-                      src={`${import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:8080"}${user.avatar}`}
+                      src={`${import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:8089"}${user.avatar}`}
                       alt="Avatar"
                       className="header-avatar-img"
                     />

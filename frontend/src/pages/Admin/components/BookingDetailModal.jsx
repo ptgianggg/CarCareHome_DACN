@@ -12,6 +12,18 @@ function statusTone(status) {
   return "active";
 }
 
+const translateStatus = (st) => {
+  const map = {
+    "PENDING": "ĐANG CHỜ",
+    "SUCCESS": "ĐÃ GIAO VIỆC",
+    "IN_PROGRESS": "ĐANG THỰC HIỆN",
+    "COMPLETED": "HOÀN TẤT",
+    "CANCEL": "ĐÃ HỦY",
+    "STAFF_REJECT": "NHÂN VIÊN TỪ CHỐI"
+  };
+  return map[st] || st;
+};
+
 const BookingDetailModal = ({ detailBooking, staffList, selectedStaffId, setSelectedStaffId, handleAssignStaff, onClose }) => {
   if (!detailBooking) return null;
 
@@ -41,7 +53,9 @@ const BookingDetailModal = ({ detailBooking, staffList, selectedStaffId, setSele
             <div style={{ background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '18px' }}>
               <p><strong>Ngày đặt:</strong> {detailBooking.bookingDate}</p>
               <p><strong>Khung giờ:</strong> {detailBooking.bookingTime}</p>
-              <p><strong>Trạng thái:</strong> <span className={`status ${statusTone(detailBooking.status)}`}>{detailBooking.status}</span></p>
+              <p><strong>Trạng thái:</strong> <span className={`status ${statusTone(detailBooking.status)}`}>
+                {translateStatus(detailBooking.status)}
+              </span></p>
             </div>
           </div>
         </div>

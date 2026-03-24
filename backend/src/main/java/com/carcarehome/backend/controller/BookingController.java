@@ -66,8 +66,9 @@ public class BookingController {
     @PutMapping("/{id}/status")
     public Booking updateStaffStatus(
             @PathVariable Long id, 
-            @RequestParam String status,
-            @RequestParam(required = false) String proofImage) {
+            @RequestBody java.util.Map<String, String> payload) {
+        String status = payload.get("status");
+        String proofImage = payload.get("proofImage");
         return bookingService.updateStatusByStaff(id, status, proofImage);
     }
 

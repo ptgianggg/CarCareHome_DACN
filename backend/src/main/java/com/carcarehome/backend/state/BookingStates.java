@@ -25,6 +25,11 @@ class SuccessState implements BookingState {
         booking.setStatus("CANCEL");
     }
     @Override
+    public void reject(Booking booking) {
+        booking.setStatus("STAFF_REJECT");
+        booking.setAssignedStaff(null);
+    }
+    @Override
     public String getStatusName() { return "SUCCESS"; }
 }
 
@@ -46,4 +51,17 @@ class FinalState implements BookingState {
     @Override public void next(Booking booking) { /* Already final */ }
     @Override public void cancel(Booking booking) { /* Already final */ }
     @Override public String getStatusName() { return "COMPLETED/CANCEL"; }
+}
+
+class StaffRejectState implements BookingState {
+    @Override
+    public void next(Booking booking) {
+        booking.setStatus("SUCCESS");
+    }
+    @Override
+    public void cancel(Booking booking) {
+        booking.setStatus("CANCEL");
+    }
+    @Override
+    public String getStatusName() { return "STAFF_REJECT"; }
 }

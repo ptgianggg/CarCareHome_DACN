@@ -26,10 +26,6 @@ const SystemSettings = () => {
 
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchSettings();
-    }, []);
-
     const fetchSettings = async () => {
         try {
             const response = await axios.get(`${import.meta.env.VITE_API_URL}/system-settings`);
@@ -40,6 +36,10 @@ const SystemSettings = () => {
             toast.error('Không thể tải cấu hình hệ thống');
         }
     };
+
+    useEffect(() => {
+        fetchSettings();
+    }, []);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -109,7 +109,7 @@ const SystemSettings = () => {
                             <div className="image-upload-wrapper">
                                 {settings.bannerUrl && (
                                     <div className="image-preview">
-                                        <img src={settings.bannerUrl.startsWith('/') ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${settings.bannerUrl}` : settings.bannerUrl} alt="Banner Preview" />
+                                        <img src={settings.bannerUrl.startsWith('/') ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8089'}${settings.bannerUrl}` : settings.bannerUrl} alt="Banner Preview" />
                                         <button type="button" className="remove-img" onClick={() => setSettings(prev => ({...prev, bannerUrl: ''}))}>&times;</button>
                                     </div>
                                 )}
@@ -164,7 +164,7 @@ const SystemSettings = () => {
                                 <div className="image-upload-wrapper">
                                     {settings.popupImageUrl && (
                                         <div className="image-preview">
-                                            <img src={settings.popupImageUrl.startsWith('/') ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${settings.popupImageUrl}` : settings.popupImageUrl} alt="Popup Preview" />
+                                            <img src={settings.popupImageUrl.startsWith('/') ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8089'}${settings.popupImageUrl}` : settings.popupImageUrl} alt="Popup Preview" />
                                             <button type="button" className="remove-img" onClick={() => setSettings(prev => ({...prev, popupImageUrl: ''}))}>&times;</button>
                                         </div>
                                     )}

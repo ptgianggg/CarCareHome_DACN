@@ -1,18 +1,16 @@
-import { useAuth } from "@/context/AuthContext";
 import "./Home.css";
 import defaultBannerImg from "@/assets/banner.png";
 import { useNavigate } from "react-router-dom";
 import { useSystem } from "@/context/SystemContext";
 
 function Home() {
-  const { user } = useAuth();
   const { settings } = useSystem();
   const navigate = useNavigate();
 
   const getImageUrl = (url) => {
     if (!url) return defaultBannerImg;
     if (url.startsWith('http')) return url;
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8089';
     return `${baseUrl}${url}`;
   };
 

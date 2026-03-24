@@ -21,6 +21,9 @@ import SystemSettings from "@/pages/Admin/SystemSettings";
 import AdminLayout from "@/layouts/AdminLayout/AdminLayout";
 import StaffLayout from "@/layouts/StaffLayout/StaffLayout";
 import MyTasks from "@/pages/Staff/MyTasks";
+import LeaveRequest from "@/pages/Staff/LeaveRequest";
+import LeaveManagement from "@/pages/Admin/LeaveManagement";
+import AccountManagement from "@/pages/Admin/AccountManagement";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -83,6 +86,8 @@ function App() {
                 <Route path="services" element={<ServiceManagement />} />
                 <Route path="categories" element={<CategoriesManagement />} />
                 <Route path="booking" element={<BookingManagement />} />
+                <Route path="leave" element={<LeaveManagement />} />
+                <Route path="accounts" element={<AccountManagement />} />
                 <Route path="settings" element={<SystemSettings />} />
               </Route>
 
@@ -90,7 +95,9 @@ function App() {
               <Route path="/staff" element={<ProtectedRoute requiredRole="STAFF"><StaffLayout /></ProtectedRoute>}>
                 <Route index element={<Navigate to="tasks" replace />} />
                 <Route path="tasks" element={<MyTasks />} />
+                <Route path="leave" element={<LeaveRequest />} />
               </Route>
+
               
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>

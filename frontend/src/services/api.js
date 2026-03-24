@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8089/api";
 
 // Helper: lấy token từ localStorage
 const getToken = () => localStorage.getItem("token");
@@ -80,7 +80,7 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
   let data = {};
   try {
       data = await res.json();
-  } catch (e) {
+  } catch {
       data = { message: res.statusText };
   }
 
@@ -160,10 +160,9 @@ export const assignStaff = async (bookingId, staffId) => {
 };
 
 export const updateBookingStatus = async (bookingId, status, proofImage = null) => {
-  let endpoint = `/bookings/${bookingId}/status?status=${status}`;
-  if (proofImage) endpoint += `&proofImage=${proofImage}`; // Assuming proofImage is a URL/filename
-  return fetchWithAuth(endpoint, {
-    method: "PUT"
+  return fetchWithAuth(`/bookings/${bookingId}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ status, proofImage })
   });
 };
 
@@ -240,3 +239,50 @@ export const addReview = async (bookingId, rating, comment) => {
     method: "PUT"
   });
 };
+
+// --- LEAVE REQUEST APIs ---
+export const createLeaveRequest = async (email, data) => {
+  return fetchWithAuth(`/leaves?email=${email}`, {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+};
+
+export const getMyLeaves = async (email) => {
+  return fetchWithAuth(`/leaves/my?email=${email}`, {
+    method: "GET"
+  });
+};
+
+export const getAllLeaves = async () => {
+  return fetchWithAuth(`/leaves`, {
+    method: "GET"
+  });
+};
+
+export const updateLeaveStatus = async (id, status) => {
+  return fetchWithAuth(`/leaves/${id}/status?status=${status}`, {
+    method: "PUT"
+  });
+};
+
+export const getAvailableStaff = async () => {
+  return fetchWithAuth("/users/staff/available", {
+    method: "GET"
+  });
+};
+
+// --- ACCOUNT / ROLE MANAGEMENT APIs ---
+export const updateUserRole = async (userId, role) => {
+  return fetchWithAuth(`/users/${userId}/role`, {
+    method: "PUT",
+    body: JSON.stringify({ role })
+  });
+};
+
+export const deleteUser = async (userId) => {
+  return fetchWithAuth(`/users/${userId}`, {
+    method: "DELETE"
+  });
+};
+

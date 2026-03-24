@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { getBookings, getUsers, assignStaff } from "../../services/api";
+import { getBookings, getAvailableStaff, assignStaff } from "../../services/api";
 import BookingRow from "./components/BookingRow";
 import BookingDetailModal from "./components/BookingDetailModal";
 import "./style.css";
@@ -8,9 +8,10 @@ const ITEMS_PER_PAGE = 10;
 
 const STATUS_OPTIONS = [
   { value: "ALL", label: "Tất cả trạng thái", icon: "📋" },
-  { value: "PENDING", label: "Đang chờ xử lý", icon: "⏳" },
-  { value: "SUCCESS", label: "Đã xác nhận", icon: "✅" },
+  { value: "PENDING", label: "Chờ phân công", icon: "⏳" },
+  { value: "SUCCESS", label: "Đã giao việc", icon: "✅" },
   { value: "IN_PROGRESS", label: "Đang thực hiện", icon: "🔧" },
+  { value: "STAFF_REJECT", label: "Staff từ chối", icon: "⚠️" },
   { value: "COMPLETED", label: "Hoàn tất", icon: "🏁" },
   { value: "CANCEL", label: "Đã hủy bỏ", icon: "❌" },
 ];
@@ -19,7 +20,6 @@ function BookingManagement() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [errorStatus, setErrorStatus] = useState(null);
   const [detailBooking, setDetailBooking] = useState(null);
   const [staffList, setStaffList] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState("");
@@ -46,15 +46,14 @@ function BookingManagement() {
 
   async function fetchData() {
     setLoading(true);
-    setErrorStatus(null);
     try {
       const [bookingsData, usersData] = await Promise.all([
         getBookings(),
-        getUsers()
+        getAvailableStaff()
       ]);
       
       if (bookingsData && bookingsData.error) {
-        setErrorStatus(bookingsData.message || "Lỗi khi tải dữ liệu");
+        console.error(bookingsData.message || "Lỗi khi tải dữ liệu");
         setBookings([]);
       } else {
         setBookings(Array.isArray(bookingsData) ? bookingsData : []);
@@ -66,7 +65,6 @@ function BookingManagement() {
       }
     } catch (error) {
       console.error("Fetch bookings error:", error);
-      setErrorStatus("Lỗi kết nối máy chủ");
       setBookings([]);
     } finally {
       setLoading(false);
@@ -87,7 +85,7 @@ function BookingManagement() {
         const staff = staffList.find(s => s.id == selectedStaffId);
         setDetailBooking(prev => ({...prev, assignedStaff: staff}));
         alert("Đã phân công nhân viên thành công!");
-    } catch (error) {
+    } catch {
         alert("Lỗi khi phân công nhân viên");
     }
   };
@@ -113,8 +111,8 @@ function BookingManagement() {
 
   const summary = useMemo(() => ({
     total: bookings.length,
-    pending: bookings.filter(b => (b.status || "PENDING") === "PENDING").length,
-    success: bookings.filter(b => b.status === "SUCCESS" || b.status === "COMPLETED").length,
+    pending: bookings.filter(b => (b.status || "PENDING") === "PENDING" || b.status === "STAFF_REJECT").length,
+    success: bookings.filter(b => b.status === "SUCCESS" || b.status === "IN_PROGRESS" || b.status === "COMPLETED").length,
     cancelled: bookings.filter(b => b.status === "CANCEL").length
   }), [bookings]);
 
@@ -124,7 +122,7 @@ function BookingManagement() {
     <>
       <header className="topbar">
         <div>
-          <p className="eyebrow" style={{ color: "var(--admin-primary)", opacity: 0.8 }}>SYSTEM MANAGEMENT</p>
+          <p className="eyebrow" style={{ color: "var(--admin-primary)", opacity: 0.8 }}>QUẢN LÝ HỆ THỐNG</p>
           <h2 style={{ fontSize: '2.8rem', fontWeight: '900', letterSpacing: '-0.04em', background: 'linear-gradient(to right, #fff, rgba(255,255,255,0.4))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Lịch Hẹn Khách Hàng</h2>
         </div>
       </header>

@@ -24,6 +24,42 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private com.carcarehome.backend.repository.IUserRepository userRepository;
+    
+    @Autowired
+    private com.carcarehome.backend.repository.LeaveRequestRepository leaveRequestRepository;
+
+    @GetMapping
+    public ResponseEntity<?> getAllUsers() {
+        java.util.List<Map<String, Object>> users = userRepository.findAll().stream().map(u -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", u.getId());
+            map.put("name", u.getName());
+            map.put("email", u.getEmail());
+            map.put("role", Map.of("name", u.getRole() != null ? u.getRole().getName() : "UNKNOWN"));
+            return map;
+        }).collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/staff/available")
+    public ResponseEntity<?> getAvailableStaff() {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.util.List<Map<String, Object>> availableStaff = userRepository.findAll().stream()
+            .filter(u -> u.getRole() != null && ("STAFF".equals(u.getRole().getName()) || "ROLE_STAFF".equals(u.getRole().getName())))
+            .filter(u -> leaveRequestRepository.countActiveLeavesForStaff(u.getId(), today) == 0)
+            .map(u -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", u.getId());
+                map.put("name", u.getName());
+                map.put("email", u.getEmail());
+                map.put("role", Map.of("name", u.getRole().getName()));
+                return map;
+            }).collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(availableStaff);
+    }
+
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -102,6 +138,32 @@ public class UserController {
             return ResponseEntity.ok(Map.of("avatar", avatarUrl, "message", "Tải ảnh lên thành công!"));
         } catch (IOException e) {
             return ResponseEntity.status(500).body(Map.of("message", "Lỗi khi tải ảnh: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}/role")
+    public ResponseEntity<?> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        try {
+            String roleName = request.get("role");
+            if (roleName == null || roleName.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Vai trò không hợp lệ"));
+            }
+            userService.updateRole(id, roleName);
+            return ResponseEntity.ok(Map.of("message", "Cập nhật quyền thành công"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.ok(Map.of("message", "Xóa tài khoản thành công"));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return ResponseEntity.status(409).body(Map.of("message", "Không thể xóa tài khoản này vì họ đang có dữ liệu công việc/lịch hẹn liên kết."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 }

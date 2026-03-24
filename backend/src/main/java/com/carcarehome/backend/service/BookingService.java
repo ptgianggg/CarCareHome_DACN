@@ -66,7 +66,7 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Staff not found"));
         booking.setAssignedStaff(staff);
         
-        if ("PENDING".equals(booking.getStatus())) {
+        if ("PENDING".equals(booking.getStatus()) || "STAFF_REJECT".equals(booking.getStatus())) {
             BookingState currentState = BookingStateFactory.getState(booking.getStatus());
             currentState.next(booking);
         }
@@ -83,6 +83,8 @@ public class BookingService {
             currentState.next(booking);
         } else if ("CANCEL".equalsIgnoreCase(status)) {
             currentState.cancel(booking);
+        } else if ("REJECT".equalsIgnoreCase(status)) {
+            currentState.reject(booking);
         } else {
             // Cảnh báo: Frontend cũ đang gửi hardcode IN_PROGRESS/COMPLETED thay vì NEXT
             // Để không vỡ logic cũ (do yêu cầu không conflict), nếu gửi chính xác trạng thái tiếp theo thì bỏ qua, nếu không sẽ cưỡng ép dùng NEXT.

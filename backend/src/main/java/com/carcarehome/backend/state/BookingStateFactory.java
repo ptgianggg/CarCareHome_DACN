@@ -6,6 +6,7 @@ public class BookingStateFactory {
             case "PENDING": return new PendingState();
             case "SUCCESS": return new SuccessState();
             case "IN_PROGRESS": return new InProgressState();
+            case "STAFF_REJECT": return new StaffRejectState();
             default: return new FinalState();
         }
     }

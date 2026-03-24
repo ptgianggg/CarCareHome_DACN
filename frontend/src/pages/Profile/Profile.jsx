@@ -29,7 +29,7 @@ const Profile = () => {
             avatar: data.avatar || ""
           });
         }
-      } catch (err) {
+      } catch {
         if (user) {
           setFormData(prev => ({
             ...prev,
@@ -69,7 +69,7 @@ const Profile = () => {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 2000);
       }
-    } catch (err) {
+    } catch {
       setError("Không thể tải ảnh lên. Vui lòng thử lại.");
     } finally {
       setUploading(false);
@@ -89,14 +89,14 @@ const Profile = () => {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       }
-    } catch (err) {
+    } catch {
       setError("Cập nhật thông tin thất bại. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
   };
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8089/api";
   const SERVER_BASE = API_BASE_URL.endsWith("/api") 
     ? API_BASE_URL.replace("/api", "") 
     : API_BASE_URL.replace("/api/", "");

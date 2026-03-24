@@ -40,4 +40,24 @@ public class UserService {
         
         return userRepository.save(user);
     }
+
+    @Autowired
+    private com.carcarehome.backend.repository.IRoleRepository roleRepository;
+
+    public User updateRole(Long userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+        com.carcarehome.backend.entity.Role role = roleRepository.findByName(roleName)
+                .orElseGet(() -> {
+                    com.carcarehome.backend.entity.Role newRole = new com.carcarehome.backend.entity.Role();
+                    newRole.setName(roleName);
+                    return roleRepository.save(newRole);
+                });
+        user.setRole(role);
+        return userRepository.save(user);
+    }
+
+    public void deleteUser(Long userId) {
+        userRepository.deleteById(userId);
+    }
 }
