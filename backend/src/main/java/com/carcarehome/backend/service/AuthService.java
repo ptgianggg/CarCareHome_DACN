@@ -74,6 +74,9 @@ public class AuthService {
         response.put("email", savedUser.getEmail());
         response.put("role", savedUser.getRole().getName());
         response.put("avatar", savedUser.getAvatar());
+        response.put("points", savedUser.getPoints() != null ? savedUser.getPoints() : 0);
+        response.put("pointsLifetime", savedUser.getPointsLifetime() != null ? savedUser.getPointsLifetime() : 0);
+        response.put("tier", savedUser.getTier());
         response.put("message", "Đăng ký thành công!");
         return response;
     }
@@ -98,6 +101,9 @@ public class AuthService {
         response.put("email", user.getEmail());
         response.put("role", user.getRole().getName());
         response.put("avatar", user.getAvatar());
+        response.put("points", user.getPoints() != null ? user.getPoints() : 0);
+        response.put("pointsLifetime", user.getPointsLifetime() != null ? user.getPointsLifetime() : 0);
+        response.put("tier", user.getTier());
         response.put("token", token); // ← Trả về JWT Access Token
 
         response.put("message", "Đăng nhập thành công!");
@@ -142,6 +148,9 @@ public class AuthService {
                 response.put("email", user.getEmail());
                 response.put("role", user.getRole().getName());
                 response.put("avatar", user.getAvatar());
+                response.put("points", user.getPoints() != null ? user.getPoints() : 0);
+                response.put("pointsLifetime", user.getPointsLifetime() != null ? user.getPointsLifetime() : 0);
+                response.put("tier", user.getTier());
                 response.put("token", token);
                 response.put("message", "Đăng nhập Google thành công!");
                 return response;

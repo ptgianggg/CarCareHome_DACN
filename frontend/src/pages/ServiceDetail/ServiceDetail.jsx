@@ -104,12 +104,8 @@ function ServiceDetail() {
         icon: Timer,
         label: "Thời lượng gợi ý",
         value: service.durationMinutes ? `${service.durationMinutes} phút` : "60 - 90 phút"
-      },
-      {
-        icon: MapPin,
-        label: "Khu vực phục vụ",
-        value: service.storeAddress || "Theo địa chỉ bạn đặt lịch"
       }
+      
     ];
   }, [service]);
 
@@ -212,10 +208,6 @@ function ServiceDetail() {
                 </span>
               </div>
               <h1>{service.name}</h1>
-              <p className="detail-lead-text">
-                {service.description ||
-                  "Trải nghiệm quy trình chăm sóc xe chuyên nghiệp, tận tâm với công nghệ hiện đại nhất hiện nay."}
-              </p>
             </header>
 
             <div className="detail-pricing-box surface-card">

@@ -313,7 +313,11 @@ function Home() {
                 <p className="review-text">"{review.reviewComment || "Dịch vụ rất chuyên nghiệp, nhân viên nhiệt tình. Tôi rất hài lòng!"}"</p>
                 <div className="review-footer">
                   <span className="review-service-tag">{review.serviceType}</span>
-                  <span className="review-date">{review.bookingDate}</span>
+                  <span className="review-date">
+                    {Array.isArray(review.bookingDate) 
+                      ? `${review.bookingDate[2]}/${review.bookingDate[1]}/${review.bookingDate[0]}`
+                      : review.bookingDate}
+                  </span>
                 </div>
               </article>
             ))

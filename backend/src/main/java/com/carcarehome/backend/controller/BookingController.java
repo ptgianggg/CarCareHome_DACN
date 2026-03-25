@@ -18,9 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.carcarehome.backend.dto.BookingRequest;
 import com.carcarehome.backend.entity.Booking;
 import com.carcarehome.backend.service.BookingService;
+import jakarta.validation.Valid;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 @RestController
-@RequestMapping({"/api/bookings", "/api/booking"})
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/bookings")
+@CrossOrigin(origins = "http://localhost:5173")
 public class BookingController {
     @Autowired
     private BookingService bookingService;
@@ -31,10 +34,8 @@ public class BookingController {
     }
 
     @GetMapping("/user")
-    public List<Booking> getBookingsByUser(
-            @RequestParam(value = "email", required = false) String email,
-            @RequestHeader(value = "X-User-Email", required = false) String headerEmail) {
-        String customerEmail = (email != null && !email.isBlank()) ? email : headerEmail;
+    public List<Booking> getBookingsByUser() {
+        String customerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return bookingService.getBookingsByCustomerEmail(customerEmail);
     }
 
@@ -45,11 +46,11 @@ public class BookingController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Booking createBooking(@RequestBody BookingRequest request) {
+    public Booking createBooking(@Valid @RequestBody BookingRequest request) {
         return bookingService.createBooking(request);
     }
     @PutMapping("/{id}")
-    public Booking updateBooking(@PathVariable("id") Long id, @RequestBody BookingRequest request) {
+    public Booking updateBooking(@PathVariable("id") Long id, @Valid @RequestBody BookingRequest request) {
         return bookingService.updateBooking(id, request);
     }
 

@@ -17,6 +17,7 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
+@org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 public class SecurityConfig {
 
     @Autowired
@@ -29,19 +30,27 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // PUBLIC ENDPOINTS
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/services/**").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/categories/**").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/bookings/reviews", "/api/booking/reviews").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/system-settings").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/system-settings/**").permitAll()
-                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/services/**", "/api/categories/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/bookings/reviews", "/api/public/reviews").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/system-settings/**", "/api/vouchers/active").permitAll()
                 .requestMatchers("/api/momo/callback", "/api/momo/notify").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
+
+                // USER PROFILE (MUST BE BEFORE BROAD USER RULES)
+                .requestMatchers("/api/users/profile/**").authenticated()
+
+                // ADMIN & STAFF SPECIFIC
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/uploads/**").hasRole("ADMIN")
-                .requestMatchers("/api/system-settings/**").hasRole("ADMIN")
                 .requestMatchers("/api/leaves/**").hasAnyRole("STAFF", "ADMIN")
                 .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "ADMIN")
+                
+                // RESTRICTED USER MANAGEMENT (ADMIN ONLY)
+                .requestMatchers("/api/users/**").hasRole("ADMIN")
+                .requestMatchers("/api/system-settings/**").hasRole("ADMIN")
+
+                // EVERYTHING ELSE
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

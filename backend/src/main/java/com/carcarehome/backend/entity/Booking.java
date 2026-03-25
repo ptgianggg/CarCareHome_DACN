@@ -50,6 +50,9 @@ public class Booking {
     @Column(columnDefinition = "TEXT")
     private String reviewComment;
 
+    @Column(name = "show_on_home")
+    private Boolean showOnHome = false;
+
     @Column(name = "customer_name", nullable = false, length = 120)
     private String customerName;
 
@@ -74,6 +77,9 @@ public class Booking {
     @Column(name = "booking_time", nullable = false)
     private LocalTime bookingTime;
 
+    @Column(name = "booking_end_time")
+    private LocalTime bookingEndTime;
+
     @Column(name = "address_name", nullable = false, length = 120)
     private String addressName;
 
@@ -95,6 +101,12 @@ public class Booking {
     @Column(name = "travel_fee", precision = 12, scale = 2)
     private BigDecimal travelFee;
 
+    @Column(name = "discount_amount", precision = 12, scale = 2)
+    private BigDecimal discountAmount;
+
+    @Column(name = "voucher_code", length = 50)
+    private String voucherCode;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -103,6 +115,9 @@ public class Booking {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    @Column(name = "points_earned")
+    private Integer pointsEarned;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<BookingItem> items = new java.util.ArrayList<>();
@@ -147,6 +162,9 @@ public class Booking {
         }
         if (travelFee == null) {
             travelFee = BigDecimal.ZERO;
+        }
+        if (discountAmount == null) {
+            discountAmount = BigDecimal.ZERO;
         }
         createdAt = now;
         updatedAt = now;

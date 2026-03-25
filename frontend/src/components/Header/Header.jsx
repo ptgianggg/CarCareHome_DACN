@@ -11,21 +11,27 @@ import {
   Search,
   UserCircle2,
   Wrench,
-  X
+  X,
+  Coins,
+  ShieldCheck,
+  LogIn,
+  UserPlus
 } from "lucide-react";
+import PhoneVerificationModal from "@/components/common/PhoneVerificationModal/PhoneVerificationModal";
 import logo from "@/assets/logo.png";
 import "./Header.css";
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:8089/api").replace(/\/api$/, "");
 
 function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, verifyLoyalty } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   const isAdmin = user?.role === "ROLE_ADMIN" || user?.role === "ADMIN";
   const isStaff = user?.role === "ROLE_STAFF" || user?.role === "STAFF";
@@ -72,7 +78,11 @@ function Header() {
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    const protectedPaths = ["/profile", "/my-bookings", "/loyalty", "/booking"];
+    const isProtected = protectedPaths.some(p => location.pathname.startsWith(p));
+    if (isProtected) {
+      navigate("/");
+    }
   };
 
   const handleSearchSubmit = (event) => {
@@ -81,11 +91,24 @@ function Header() {
     navigate(nextQuery ? `/services?q=${encodeURIComponent(nextQuery)}` : "/services");
   };
 
+  const handleLoyaltyClick = (e) => {
+    e.preventDefault();
+    setShowDropdown(false);
+    setShowPhoneModal(true);
+  };
+
+  const handlePhoneVerified = () => {
+    setShowPhoneModal(false);
+    verifyLoyalty();
+    navigate("/loyalty");
+  };
+
   const avatarText = user?.name?.charAt(0)?.toUpperCase() || "C";
   const avatarSrc = user?.avatar ? `${API_ORIGIN}${user.avatar}` : null;
 
   return (
-    <header className={`main-header ${isScrolled ? "is-scrolled" : ""}`}>
+    <>
+      <header className={`main-header ${isScrolled ? "is-scrolled" : ""}`}>
       <div className="header-shell">
         <Link to="/" className="header-brand">
           <div className="header-logo">
@@ -157,8 +180,12 @@ function Header() {
                     </Link>
                     <Link to="/my-bookings" className="dropdown-link" onClick={() => setShowDropdown(false)}>
                       <CalendarClock size={17} />
-                      Theo dõi lịch hẹn
+                      Lịch hẹn của tôi
                     </Link>
+                    <button type="button" className="dropdown-link" onClick={handleLoyaltyClick}>
+                      <Coins size={17} className="icon-gold" />
+                      Tra cứu điểm thưởng
+                    </button>
                     {portalLink && (
                       <Link to={portalLink.to} className="dropdown-link" onClick={() => setShowDropdown(false)}>
                         <LayoutDashboard size={17} />
@@ -175,8 +202,14 @@ function Header() {
             </div>
           ) : (
             <div className="auth-actions">
-              <Link to="/login" className="auth-link subtle">Đăng nhập</Link>
-              <Link to="/register" className="auth-link primary">Đăng ký</Link>
+              <Link to="/login" className="auth-link subtle">
+               
+                <span>Đăng nhập</span>
+              </Link>
+              <Link to="/register" className="auth-link primary">
+               
+                <span>Đăng ký</span>
+              </Link>
             </div>
           )}
 
@@ -227,19 +260,28 @@ function Header() {
 
           {!user && (
             <>
-              <Link to="/login" className="mobile-nav-link" style={{ marginTop: '8px' }}>
-                <UserCircle2 size={18} />
+              <Link to="/login" className="mobile-nav-link login-trigger" style={{ marginTop: '8px' }}>
+                <LogIn size={20} />
                 Đăng nhập
               </Link>
-              <Link to="/register" className="mobile-nav-link" style={{ color: '#31a4ff' }}>
-                <UserCircle2 size={18} />
+              <Link to="/register" className="mobile-nav-link register-trigger">
+                <UserPlus size={20} />
                 Tạo tài khoản
               </Link>
             </>
           )}
         </nav>
       </div>
-    </header>
+
+      </header>
+
+      <PhoneVerificationModal 
+        isOpen={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)}
+        onVerify={handlePhoneVerified}
+        correctPhone={user?.phone}
+      />
+    </>
   );
 }
 

@@ -102,7 +102,7 @@ const LeaveRequest = () => {
         <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto', color: '#fff' }}>
             <div style={{ marginBottom: '30px' }}>
                 <h1 style={{ fontSize: '2rem', margin: '0 0 8px' }}>Xin nghỉ phép</h1>
-                <p style={{ color: 'var(--staff-text-muted)' }}>Gửi đơn xin nghỉ phép (tối đa 2 ngày) và quản lý lịch nghỉ của bạn.</p>
+               
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', alignItems: 'start' }}>

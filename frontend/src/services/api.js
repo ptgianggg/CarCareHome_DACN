@@ -57,6 +57,24 @@ export const resetPassword = async (token, newPassword) => {
   return res.json();
 };
 
+export const sendOTP = async (email) => {
+  const res = await fetch(`${API_URL}/auth/send-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email })
+  });
+  return res.json();
+};
+
+export const verifyOTP = async (email, otp) => {
+  const res = await fetch(`${API_URL}/auth/verify-otp`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, otp })
+  });
+  return res.json();
+};
+
 // ============================================================
 // PROTECTED APIs (cần token - tự động gắn Authorization header)
 // ============================================================
@@ -69,11 +87,14 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
     }
   });
 
-  // Nếu server trả về 401 (token hết hạn / không hợp lệ) → logout
-  if (res.status === 401) {
+  // Nếu server trả về 401/403 (token hết hạn / không hợp lệ / không đủ quyền) → xóa local state
+  if (res.status === 401 || res.status === 403) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    window.location.href = "/login";
+    // Redirect to login only if not already on login/home page to avoid infinite loops
+    if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
+        window.location.href = "/login";
+    }
     return;
   }
 
@@ -100,6 +121,12 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
 // ============================================================
 export const getProfile = async () => {
   return fetchWithAuth("/users/profile", {
+    method: "GET"
+  });
+};
+
+export const getProfilePerformance = async () => {
+  return fetchWithAuth("/users/profile/performance", {
     method: "GET"
   });
 };
@@ -186,20 +213,20 @@ export const getFeaturedCategories = async () => {
 };
 
 export const createBooking = async (bookingData) => {
-  return fetchWithAuth("/booking", {
+  return fetchWithAuth("/bookings", {
     method: "POST",
     body: JSON.stringify(bookingData)
   });
 };
 
 export const getBookings = async () => {
-  return fetchWithAuth("/booking", {
+  return fetchWithAuth("/bookings", {
     method: "GET"
   });
 };
 
 export const getMyBookings = async (email) => {
-  return fetchWithAuth(`/booking/user?email=${email}`, {
+  return fetchWithAuth(`/bookings/user?email=${email}`, {
     method: "GET"
   });
 };
@@ -249,7 +276,7 @@ export const addReview = async (bookingId, rating, comment) => {
 };
 
 export const getReviews = async () => {
-  const res = await fetch(`${API_URL}/bookings/reviews`);
+  const res = await fetch(`${API_URL}/public/reviews`);
   return res.json();
 };
 
@@ -319,4 +346,61 @@ export const getPaymentHistory = async (bookingId) => {
     method: "GET"
   });
 };
+// ============================================================
+// VOUCHER APIs
+// ============================================================
+export const getActiveVouchers = async () => {
+  return fetchWithAuth("/vouchers/active", {
+    method: "GET"
+  });
+};
 
+export const getAllVouchers = async () => {
+  return fetchWithAuth("/vouchers", {
+    method: "GET"
+  });
+};
+
+export const createVoucher = async (data) => {
+  return fetchWithAuth("/vouchers", {
+    method: "POST",
+    body: JSON.stringify(data)
+  });
+};
+
+export const updateVoucher = async (id, data) => {
+  return fetchWithAuth(`/vouchers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data)
+  });
+};
+
+export const deleteVoucher = async (id) => {
+  return fetchWithAuth(`/vouchers/${id}`, {
+    method: "DELETE"
+  });
+};
+
+export const toggleVoucherStatus = async (id) => {
+  return fetchWithAuth(`/vouchers/${id}/toggle`, {
+    method: "PATCH"
+  });
+};
+
+export const redeemVoucher = async (id) => {
+  return fetchWithAuth(`/vouchers/${id}/redeem`, {
+    method: "POST"
+  });
+};
+
+export const getMyVoucherIds = async () => {
+  return fetchWithAuth("/vouchers/my-voucher-ids", {
+    method: "GET"
+  });
+};
+
+export const getMyVouchers = async () => {
+  return fetchWithAuth("/vouchers/my-vouchers", {
+    method: "GET"
+  });
+};

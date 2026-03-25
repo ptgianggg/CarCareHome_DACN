@@ -27,6 +27,9 @@ public class PaymentService {
     @Autowired
     private BookingRepository bookingRepository;
 
+    @Autowired
+    private BookingService bookingService;
+
     /**
      * Thanh toán tiền mặt (COD) - KTV nhận tiền trực tiếp từ khách hàng
      */
@@ -59,6 +62,10 @@ public class PaymentService {
         // Chuyển sang COMPLETED via State Pattern
         BookingState state = BookingStateFactory.getState(booking.getStatus());
         state.next(booking);
+
+        if ("COMPLETED".equals(booking.getStatus())) {
+            bookingService.awardLoyaltyPoints(booking);
+        }
 
         return bookingRepository.save(booking);
     }
@@ -111,6 +118,10 @@ public class PaymentService {
         if ("AWAITING_FINAL_PAYMENT".equals(booking.getStatus())) {
             BookingState state = BookingStateFactory.getState(booking.getStatus());
             state.next(booking);
+        }
+
+        if ("COMPLETED".equals(booking.getStatus())) {
+            bookingService.awardLoyaltyPoints(booking);
         }
 
         bookingRepository.save(booking);

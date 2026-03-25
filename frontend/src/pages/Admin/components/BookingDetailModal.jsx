@@ -13,7 +13,9 @@ import {
   Briefcase,
   CheckCircle2,
   Info,
-  ChevronDown
+  ChevronDown,
+  Coins,
+  Ticket
 } from 'lucide-react';
 
 function formatPrice(value) {
@@ -31,7 +33,8 @@ function statusTone(status) {
 
 const translateStatus = (st) => {
   const map = {
-    "PENDING": "CHỜ THANH TOÁN CỌC",
+    "WAITING_FOR_PAYMENT": "CHỜ THANH TOÁN CỌC",
+    "PENDING": "CHỜ PHÂN CÔNG",
     "SUCCESS": "ĐÃ XÁC NHẬN",
     "IN_PROGRESS": "ĐANG THỰC HIỆN",
     "AWAITING_FINAL_PAYMENT": "CHỜ THANH TOÁN CUỐI",
@@ -68,7 +71,7 @@ const BookingDetailModal = ({ detailBooking, staffList, busyStaffIds = new Set()
 
   const needsDeposit = (detailBooking.totalPrice || 0) > 500000;
   const hasPaid = detailBooking.paymentStatus === 'DEPOSITED' || detailBooking.paymentStatus === 'PAID_FULL';
-  const isLocked = detailBooking.status === 'PENDING' && needsDeposit && !hasPaid;
+  const isLocked = detailBooking.status === 'WAITING_FOR_PAYMENT' || (detailBooking.status === 'PENDING' && needsDeposit && !hasPaid);
 
   const toggleStaff = (id) => {
     setSelectedStaffIds(prev => 
@@ -296,8 +299,14 @@ const BookingDetailModal = ({ detailBooking, staffList, busyStaffIds = new Set()
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
                   <span style={{ fontSize: '0.95rem', opacity: 0.5 }}>Chi phí dịch vụ gốc:</span>
-                  <strong style={{ fontSize: '1.05rem' }}>{formatPrice(detailBooking.totalPrice - (detailBooking.travelFee || 0))}</strong>
+                  <strong style={{ fontSize: '1.05rem' }}>{formatPrice((detailBooking.totalPrice || 0) + (detailBooking.discountAmount || 0) - (detailBooking.travelFee || 0))}</strong>
                 </div>
+                {detailBooking.discountAmount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', color: '#4ade80' }}>
+                    <span style={{ fontSize: '0.95rem', opacity: 1, display: 'flex', alignItems: 'center', gap: '8px' }}><Ticket size={14}/> Voucher ({detailBooking.voucherCode}):</span>
+                    <strong style={{ fontSize: '1.05rem' }}>-{formatPrice(detailBooking.discountAmount)}</strong>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
                   <span style={{ fontSize: '0.95rem', opacity: 0.5, display: 'flex', alignItems: 'center', gap: '8px' }}><Truck size={14}/> Phí di chuyển ({detailBooking.distance || 0} km):</span>
                   <strong style={{ fontSize: '1.05rem' }}>{detailBooking.travelFee === 0 && (detailBooking.distance || 0) > 0 ? <span style={{ color: '#10b981', marginRight: '8px' }}>MIỄN PHÍ</span> : ""}{formatPrice(detailBooking.travelFee)}</strong>
@@ -306,6 +315,15 @@ const BookingDetailModal = ({ detailBooking, staffList, busyStaffIds = new Set()
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '1rem', fontWeight: '800', opacity: 0.6, letterSpacing: '1px' }}>TỔNG CỘNG:</span>
                   <span style={{ fontSize: '2rem', fontWeight: '900', color: '#3b82f6', letterSpacing: '-1.5px' }}>{formatPrice(detailBooking.totalPrice)}</span>
+                </div>
+                {/* Loyalty points row */}
+                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed rgba(251, 191, 36, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#fbbf24', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Coins size={14} /> {detailBooking.status === "COMPLETED" ? "ĐIỂM ĐÃ NHẬN:" : "ĐIỂM DỰ KIẾN:"}
+                  </span>
+                  <strong style={{ fontSize: '1.2rem', color: '#fbbf24', fontWeight: '900' }}>
+                    +{detailBooking.pointsEarned || Math.floor(((detailBooking.totalPrice || 0) - (detailBooking.travelFee || 0)) / 10000)} PTS
+                  </strong>
                 </div>
               </div>
 

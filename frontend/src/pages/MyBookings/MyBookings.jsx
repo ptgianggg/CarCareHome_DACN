@@ -12,17 +12,23 @@ import {
   Star,
   Camera,
   UserCheck,
-  Phone
+  Phone,
+  Coins,
+  Ticket
 } from "lucide-react";
 import toast from 'react-hot-toast';
+import PhoneVerificationModal from "@/components/common/PhoneVerificationModal/PhoneVerificationModal";
+import { useNavigate } from "react-router-dom";
 import "./MyBookings.css";
 
 const MyBookings = () => {
-  const { user } = useAuth();
+  const { user, verifyLoyalty } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const navigate = useNavigate();
   
   const [revRating, setRevRating] = useState(0);
   const [revComment, setRevComment] = useState("");
@@ -165,7 +171,13 @@ const MyBookings = () => {
       <div className="bookings-wrapper">
         <header className="page-header">
           <div className="badge">LỊCH SỬ DỊCH VỤ</div>
-          <h1>Lịch hẹn của tôi</h1>
+          <div className="header-main-row">
+            <h1>Lịch hẹn của tôi</h1>
+            <button className="loyalty-lookup-btn" onClick={() => setShowPhoneModal(true)}>
+              <Coins size={18} />
+              <span>Tra cứu điểm thưởng</span>
+            </button>
+          </div>
          
         </header>
 
@@ -228,6 +240,11 @@ const MyBookings = () => {
                   <div className="price-wrapper">
                     <span className="price-label">Tổng thanh toán</span>
                     <span className="price-value">{formatPrice(booking.totalPrice)}</span>
+                  </div>
+                  {/* Points Badge */}
+                  <div className="points-badge-mini">
+                    <Coins size={12} className="points-icon" />
+                    <span>+{booking.pointsEarned || Math.floor(((booking.totalPrice || 0) - (booking.travelFee || 0)) / 10000)} điểm</span>
                   </div>
                   <div className="action-circle">
                     <ChevronRight size={18} />
@@ -322,7 +339,7 @@ const MyBookings = () => {
               <div className="detail-section payment-summary">
                 <div className="summary-row">
                   <span>Tiền dịch vụ:</span>
-                  <strong>{formatPrice((selectedBooking.totalPrice || 0) - (selectedBooking.travelFee || 0))}</strong>
+                  <strong>{formatPrice((selectedBooking.totalPrice || 0) + (selectedBooking.discountAmount || 0) - (selectedBooking.travelFee || 0))}</strong>
                 </div>
                 {selectedBooking.distance != null && (
                   <div className="summary-row">
@@ -333,7 +350,15 @@ const MyBookings = () => {
                     </strong>
                   </div>
                 )}
-                <div className="summary-row total-calc">
+                {selectedBooking.discountAmount > 0 && (
+                  <div className="summary-row voucher-applied-row" style={{ color: '#4ade80' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Ticket size={14} /> Voucher ({selectedBooking.voucherCode}):
+                    </span>
+                    <strong>-{formatPrice(selectedBooking.discountAmount)}</strong>
+                  </div>
+                )}
+                <div className="summary-row total-calc" style={{ borderTop: '1.5px solid rgba(255,255,255,0.1)', marginTop: '8px', paddingTop: '8px' }}>
                   <span>Tổng tiền thực tế:</span>
                   <strong>{formatPrice(selectedBooking.totalPrice)}</strong>
                 </div>
@@ -345,6 +370,17 @@ const MyBookings = () => {
                   <span>Cần thanh toán thêm:</span>
                   <strong>{formatPrice((selectedBooking.totalPrice || 0) - (selectedBooking.depositAmount || 0))}</strong>
                 </div>
+
+                <div className="summary-row points-row" style={{ borderTop: '1px dashed rgba(255,255,255,0.08)', marginTop: '8px', paddingTop: '8px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Coins size={14} color="#fbbf24" /> 
+                    {selectedBooking.status === "COMPLETED" ? "Điểm đã nhận:" : "Điểm tích lũy dự kiến:"}
+                  </span>
+                  <strong style={{ color: '#fbbf24' }}>
+                    +{selectedBooking.pointsEarned || Math.floor(((selectedBooking.totalPrice || 0) - (selectedBooking.travelFee || 0)) / 10000)} điểm
+                  </strong>
+                </div>
+
                 <div className="summary-row payment-status">
                   <span>Trạng thái thanh toán:</span>
                   <span className={`status-pill ${selectedBooking.paymentStatus === 'PAID_FULL' ? 'status-success' : (selectedBooking.paymentStatus === 'DEPOSITED' ? 'status-active' : 'status-warning')}`}>
@@ -497,6 +533,16 @@ const MyBookings = () => {
           </div>
         </div>
       )}
+      <PhoneVerificationModal 
+        isOpen={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)} 
+        onVerify={() => {
+          setShowPhoneModal(false);
+          verifyLoyalty();
+          navigate("/loyalty");
+        }}
+        correctPhone={user?.phone}
+      />
     </div>
   );
 };

@@ -1,0 +1,426 @@
+.loyalty-page-container {
+  min-height: 100vh;
+  background-color: #020617;
+  color: #f8fafc;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  overflow: hidden;
+  padding: 100px 20px 80px;
+}
+
+.loyalty-bg-glow {
+  position: absolute;
+  top: -10%;
+  right: -5%;
+  width: 50vw;
+  height: 50vh;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.08) 0%, transparent 70%);
+  filter: blur(80px);
+  z-index: 1;
+}
+
+.loyalty-content-wrapper {
+  position: relative;
+  z-index: 2;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.loyalty-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.loyalty-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 15px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.loyalty-header h1 {
+  font-size: 2.8rem;
+  font-weight: 900;
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+}
+
+.loyalty-header p {
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
+/* Points Hero Card */
+.points-hero-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 40px;
+  padding: 50px;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 60px;
+  align-items: center;
+  margin-bottom: 60px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.4);
+}
+
+.points-hero-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px; right: -1px; bottom: -1px;
+  border-radius: 40px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent, rgba(251, 191, 36, 0.1));
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero-left {
+  display: flex;
+  justify-content: center;
+}
+
+.points-circle {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  border: 1px dashed rgba(251, 191, 36, 0.3);
+  position: relative;
+}
+
+.points-inner {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 30% 30%, #1e293b, #0f172a);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  box-shadow: 0 0 50px rgba(251, 191, 36, 0.15);
+}
+
+.coins-rotating {
+  color: #fbbf24;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.4));
+}
+
+.points-count {
+  font-size: 3.5rem;
+  font-weight: 950;
+  line-height: 1.1;
+  color: #fff;
+  letter-spacing: -2px;
+}
+
+.points-label {
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  font-weight: 800;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.tier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.tier-header h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.tier-silver {
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  margin-left: 8px;
+  border-bottom: 2px solid #94a3b8;
+}
+
+.progress-container {
+  margin-bottom: 30px;
+}
+
+.progress-bar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 99px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #94a3b8, #fff);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.progress-labels strong {
+  color: #fff;
+}
+
+.quick-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.stat-item svg {
+  color: #fbbf24;
+}
+
+/* Vouchers Section */
+.vouchers-section {
+  margin-top: 60px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.icon-gold {
+  color: #fbbf24;
+}
+
+.view-history-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.view-history-btn:hover {
+  color: #fff;
+}
+
+.vouchers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  gap: 25px;
+}
+
+.voucher-card {
+  background: #1e293b;
+  border-radius: 24px;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  height: 180px;
+  transition: 0.3s cubic-bezier(0.17, 0.67, 0.83, 1.2);
+}
+
+.voucher-card:hover {
+  transform: translateY(-8px);
+}
+
+.voucher-left {
+  background: var(--accent-color, #3b82f6);
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  position: relative;
+  border-right: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+.voucher-circle-cut {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #020617;
+  border-radius: 50%;
+  left: 70px;
+}
+
+.voucher-circle-cut.top { top: -10px; }
+.voucher-circle-cut.bottom { bottom: -10px; }
+
+.voucher-body {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.voucher-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.voucher-header h4 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.discount-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--accent-color);
+}
+
+.voucher-body p {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin: 10px 0;
+  line-height: 1.4;
+}
+
+.voucher-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.points-needed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+}
+
+.points-needed strong {
+  color: #fbbf24;
+  font-size: 1.2rem;
+}
+
+.redeem-btn {
+  background: #fff;
+  color: #020617;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.redeem-btn:hover:not(.disabled) {
+  background: var(--accent-color);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.redeem-btn.disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.2);
+  cursor: not-allowed;
+}
+
+/* Info Section */
+.loyalty-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+  margin-top: 80px;
+}
+
+.info-card {
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 30px;
+}
+
+.info-icon {
+  width: 44px;
+  height: 44px;
+  background: rgba(251, 191, 36, 0.1);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fbbf24;
+  margin-bottom: 20px;
+}
+
+.info-card h3 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.info-card p {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .points-hero-card {
+    grid-template-columns: 1fr;
+    padding: 30px;
+    gap: 30px;
+  }
+  .vouchers-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .loyalty-header h1 { font-size: 2.2rem; }
+  .loyalty-info-grid { grid-template-columns: 1fr; }
+  .voucher-card { flex-direction: column; height: auto; }
+  .voucher-left { width: 100%; height: 60px; flex-direction: row; border-right: none; border-bottom: 2px dashed rgba(255,255,255,0.2); }
+  .voucher-circle-cut { display: none; }
+}

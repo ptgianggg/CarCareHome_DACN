@@ -15,7 +15,8 @@ function statusTone(status) {
 
 const translateStatus = (st) => {
   const map = {
-    "PENDING": "CHỜ THANH TOÁN CỌC",
+    "WAITING_FOR_PAYMENT": "CHỜ THANH TOÁN CỌC",
+    "PENDING": "CHỜ PHÂN CÔNG",
     "SUCCESS": "ĐÃ XÁC NHẬN",
     "IN_PROGRESS": "ĐANG THỰC HIỆN",
     "AWAITING_FINAL_PAYMENT": "CHỜ THANH TOÁN CUỐI",
@@ -58,13 +59,17 @@ const BookingRow = ({ b, onClick }) => {
         <p style={{ margin: 0, fontWeight: '800' }}>{b.bookingTime}</p>
         <small style={{ opacity: 0.4 }}>{b.bookingDate}</small>
       </div>
-      <span style={{ 
-        fontWeight: '900', 
-        color: '#3b82f6', 
-        fontSize: '1.2rem', 
-        textAlign: 'right',
-        paddingRight: '20px'
-      }}>{formatPrice(b.totalPrice)}</span>
+      <div style={{ textAlign: 'right', paddingRight: '20px' }}>
+        <p style={{ 
+          fontWeight: '900', 
+          color: '#3b82f6', 
+          fontSize: '1.2rem', 
+          margin: 0
+        }}>{formatPrice(b.totalPrice)}</p>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', padding: '2px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800', marginTop: '4px' }}>
+          <span>+{b.pointsEarned || Math.floor(((b.totalPrice || 0) - (b.travelFee || 0)) / 10000)} pts</span>
+        </div>
+      </div>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
         <span className={`status ${statusTone(b.status)}`} style={{ padding: '8px 16px', borderRadius: '12px', fontWeight: '900', fontSize: '0.7rem' }}>
           {translateStatus(b.status)}

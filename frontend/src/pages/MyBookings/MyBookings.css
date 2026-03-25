@@ -57,6 +57,49 @@
   font-size: 1rem;
 }
 
+.header-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  position: relative;
+}
+
+.loyalty-lookup-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 16px;
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.loyalty-lookup-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(251, 191, 36, 0.15);
+}
+
+.loyalty-lookup-btn span {
+  font-weight: 800;
+}
+
+@media (max-width: 768px) {
+  .header-main-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+}
+
+
 /* Tabs */
 .bookings-tabs-container {
   display: flex;
@@ -399,3 +442,46 @@
   .detail-grid p.full { grid-column: span 1; }
   .item-row-premium { grid-template-columns: 1fr; gap: 10px; }
 }
+
+/* Loyalty Points Styling */
+.points-badge-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  margin-top: 8px;
+  align-self: flex-end;
+}
+
+.points-icon {
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.4));
+  animation: points-float 3s ease-in-out infinite;
+}
+
+@keyframes points-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-2px) rotate(10deg); }
+}
+
+.summary-row.points-row {
+  background: rgba(251, 191, 36, 0.04);
+  margin: 12px -24px;
+  padding: 12px 24px !important;
+  border-top: 1px dashed rgba(251, 191, 36, 0.2) !important;
+  border-bottom: 1px dashed rgba(251, 191, 36, 0.2);
+}
+
+.summary-row.points-row span {
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+

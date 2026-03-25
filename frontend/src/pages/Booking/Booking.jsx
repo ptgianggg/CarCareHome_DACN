@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { createBooking, getServices, getCategories } from "../../services/api";
+import { createBooking, getServices, getCategories, getMyVouchers, getActiveVouchers, redeemVoucher } from "../../services/api";
 import { 
   Car, 
   Settings, 
@@ -14,8 +14,12 @@ import {
   ChevronLeft, 
   ChevronRight, 
   CheckCircle,
-  FileText
+  FileText,
+  Coins,
+  Ticket,
+  ChevronDown
 } from "lucide-react";
+import ConfirmModal from "@/components/common/ConfirmModal/ConfirmModal";
 import momoLogo from "@/assets/momo.png";
 import { useAuth } from "@/context/AuthContext";
 import "./style.css";
@@ -48,16 +52,39 @@ const Booking = () => {
   const serviceId = searchParams.get("service_id");
   const navigate = useNavigate();
 
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(() => {
+    const saved = localStorage.getItem("carcare_booking_form");
+    const expiry = localStorage.getItem("carcare_booking_expiry");
+    const now = new Date().getTime();
+    
+    // Hết hạn sau 60 phút (3600000 ms)
+    if (expiry && now - Number(expiry) > 3600000) {
+      return initialForm;
+    }
+    return saved ? JSON.parse(saved) : initialForm;
+  });
   const [, setLoadingService] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isCalculatingDist, setIsCalculatingDist] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   
   const [allServices, setAllServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [currentCategoryView, setCurrentCategoryView] = useState("");
-  const [currentStep, setCurrentStep] = useState(1);
+  const [myVouchers, setMyVouchers] = useState([]);
+  const [activeVouchers, setActiveVouchers] = useState([]);
+  const [voucherCodeInput, setVoucherCodeInput] = useState("");
+  const [selectedVoucherId, setSelectedVoucherId] = useState(null);
+  const [isVoucherOpen, setIsVoucherOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(() => {
+    const expiry = localStorage.getItem("carcare_booking_expiry");
+    const now = new Date().getTime();
+    if (expiry && now - Number(expiry) > 3600000) return 1;
+
+    const saved = localStorage.getItem("carcare_booking_step");
+    return saved ? Number(saved) : 1;
+  });
   const [shopCoords, setShopCoords] = useState({ lat: 10.84641, lon: 106.77393 });
 
   // Initial load: Categories, Services, Provinces AND Shop Coords
@@ -86,20 +113,32 @@ const Booking = () => {
     }
   }, [user]);
 
-  // Multiple Vehicles State
-  const [vehicles, setVehicles] = useState([
-    { id: 1, vehicleType: "", vehiclePlate: "", selectedServiceIds: new Set() }
-  ]);
+  const [vehicles, setVehicles] = useState(() => {
+    const expiry = localStorage.getItem("carcare_booking_expiry");
+    const now = new Date().getTime();
+    if (expiry && now - Number(expiry) > 3600000) return [{ id: 1, vehicleType: "", vehiclePlate: "", selectedServiceIds: new Set() }];
+
+    const saved = localStorage.getItem("carcare_booking_vehicles");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map(v => ({ ...v, selectedServiceIds: new Set(v.selectedServiceIds || []) }));
+      } catch (e) {
+        console.error("Failed to parse saved vehicles:", e);
+      }
+    }
+    return [{ id: 1, vehicleType: "", vehiclePlate: "", selectedServiceIds: new Set() }];
+  });
   const [activeVehicleIndex, setActiveVehicleIndex] = useState(0);
 
   // Vietnam Provinces API State
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [wards, setWards] = useState([]);
-  const [selectedProvince, setSelectedProvince] = useState("");
-  const [selectedDistrict, setSelectedDistrict] = useState("");
-  const [selectedWard, setSelectedWard] = useState("");
-  const [street, setStreet] = useState("");
+  const [selectedProvince, setSelectedProvince] = useState(localStorage.getItem("carcare_booking_p") || "");
+  const [selectedDistrict, setSelectedDistrict] = useState(localStorage.getItem("carcare_booking_d") || "");
+  const [selectedWard, setSelectedWard] = useState(localStorage.getItem("carcare_booking_w") || "");
+  const [street, setStreet] = useState(localStorage.getItem("carcare_booking_s") || "");
 
   useEffect(() => {
     // Initial load: Categories, Services, and Provinces
@@ -120,6 +159,24 @@ const Booking = () => {
         setAllServices(activeServices);
         const filteredCats = Array.isArray(cats) ? cats : [];
         setCategories(filteredCats);
+
+        // Load user's unused vouchers if logged in
+        if (user) {
+          try {
+            const [vouchers, pubVouchers] = await Promise.all([
+              getMyVouchers(),
+              getActiveVouchers()
+            ]);
+            if (Array.isArray(vouchers)) {
+              setMyVouchers(vouchers.filter(v => !v.used));
+            }
+            if (Array.isArray(pubVouchers)) {
+              setActiveVouchers(pubVouchers);
+            }
+          } catch (err) {
+            console.error("Failed to load vouchers:", err);
+          }
+        }
 
         if (serviceId) {
           // If coming from service detail, auto-select for the first vehicle
@@ -150,6 +207,33 @@ const Booking = () => {
     loadProvinces();
   }, [serviceId]);
 
+  // --- PERSISTENCE: Save to localStorage ---
+  useEffect(() => {
+    const now = new Date().getTime();
+    localStorage.setItem("carcare_booking_expiry", now);
+    localStorage.setItem("carcare_booking_form", JSON.stringify(form));
+    localStorage.setItem("carcare_booking_vehicles", JSON.stringify(vehicles.map(v => ({ 
+      ...v, 
+      selectedServiceIds: Array.from(v.selectedServiceIds) 
+    }))));
+    localStorage.setItem("carcare_booking_step", currentStep);
+    localStorage.setItem("carcare_booking_p", selectedProvince);
+    localStorage.setItem("carcare_booking_d", selectedDistrict);
+    localStorage.setItem("carcare_booking_w", selectedWard);
+    localStorage.setItem("carcare_booking_s", street);
+  }, [form, vehicles, currentStep, selectedProvince, selectedDistrict, selectedWard, street]);
+
+  // --- PERSISTENCE: Clear on success ---
+  const clearBookingCache = () => {
+    localStorage.removeItem("carcare_booking_expiry");
+    localStorage.removeItem("carcare_booking_form");
+    localStorage.removeItem("carcare_booking_vehicles");
+    localStorage.removeItem("carcare_booking_step");
+    localStorage.removeItem("carcare_booking_p");
+    localStorage.removeItem("carcare_booking_d");
+    localStorage.removeItem("carcare_booking_w");
+    localStorage.removeItem("carcare_booking_s");
+  };
 
   useEffect(() => {
     if (!selectedProvince) {
@@ -385,7 +469,25 @@ const Booking = () => {
   };
 
   const travelFee = calculateTravelFee(serviceTotal, form.distance);
-  const totalPrice = serviceTotal + travelFee;
+
+  const selectedVoucher = useMemo(() => {
+    return myVouchers.find(v => v.id === selectedVoucherId);
+  }, [myVouchers, selectedVoucherId]);
+
+  const discountAmount = useMemo(() => {
+    if (!selectedVoucher) return 0;
+    const baseTotal = serviceTotal + travelFee;
+    const v = selectedVoucher.voucher;
+    
+    if (v.minOrderValue && baseTotal < v.minOrderValue) return 0;
+    
+    if (v.discountType === 'CASH') return Number(v.discountValue);
+    if (v.discountType === 'PERCENT') return baseTotal * (Number(v.discountValue) / 100);
+    if (v.discountType === 'SERVICE') return serviceTotal;
+    return 0;
+  }, [selectedVoucher, serviceTotal, travelFee]);
+
+  const totalPrice = Math.max(0, serviceTotal + travelFee - discountAmount);
 
   const hierarchicalServices = useMemo(() => {
     return categories.map(cat => ({
@@ -413,6 +515,67 @@ const Booking = () => {
   const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 3));
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
+  const handleSaveVoucher = async (e, voucherId) => {
+    e.stopPropagation();
+    try {
+      setSaving(true);
+      await redeemVoucher(voucherId);
+      const [vouchers, pubVouchers] = await Promise.all([
+        getMyVouchers(),
+        getActiveVouchers()
+      ]);
+      if (Array.isArray(vouchers)) setMyVouchers(vouchers.filter(v => !v.used));
+      if (Array.isArray(pubVouchers)) setActiveVouchers(pubVouchers);
+      alert("Đã lưu mã giảm giá thành công! Bạn có thể chọn để áp dụng.");
+    } catch (err) {
+      console.error(err);
+      alert("Kho lưu mã đã đầy hoặc mã không hợp lệ.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleApplyVoucherCode = async () => {
+    if (!voucherCodeInput.trim()) return;
+    const code = voucherCodeInput.trim().toUpperCase();
+    
+    // Check if already saved
+    const existing = myVouchers.find(uv => uv.voucher.code.toUpperCase() === code);
+    if (existing) {
+      setSelectedVoucherId(existing.id);
+      setVoucherCodeInput("");
+      alert("Đã áp dụng mã giảm giá thành công.");
+      return;
+    }
+
+    // Check if valid active voucher
+    const active = activeVouchers.find(v => v.code.toUpperCase() === code);
+    if (active) {
+      try {
+        setSaving(true);
+        await redeemVoucher(active.id);
+        const vouchers = await getMyVouchers();
+        if (Array.isArray(vouchers)) {
+           const activeList = vouchers.filter(v => !v.used);
+           setMyVouchers(activeList);
+           const newlySaved = activeList.find(uv => uv.voucher.code.toUpperCase() === code);
+           if (newlySaved) {
+             setSelectedVoucherId(newlySaved.id);
+             setVoucherCodeInput("");
+             alert("Đã lưu và áp dụng mã giảm giá thành công!");
+           }
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Không thể áp dụng mã này (hoặc điểm không đủ).");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    alert("Mã giảm giá không hợp lệ, hoặc không tồn tại.");
+  };
+
   const onSubmit = async (event) => {
     if (event) event.preventDefault();
 
@@ -434,7 +597,8 @@ const Booking = () => {
         vehicleType: v.vehicleType,
         vehiclePlate: v.vehiclePlate,
         serviceType: svcNames,
-        price: vPrice
+        price: vPrice,
+        serviceIds: Array.from(v.selectedServiceIds)
       };
     });
 
@@ -444,6 +608,15 @@ const Booking = () => {
       customerEmail: form.customerEmail.trim() || null,
       bookingDate: form.bookingDate,
       bookingTime: form.bookingTime,
+      bookingEndTime: (() => {
+        const [h, m] = form.bookingTime.split(":").map(Number);
+        const date = new Date();
+        date.setHours(h, m, 0, 0);
+        // Nếu không có duration, default 45 phút
+        const duration = totalDuration > 0 ? totalDuration : 45;
+        const endDate = new Date(date.getTime() + duration * 60000);
+        return `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+      })(),
       addressName: form.addressName.trim(),
       note: form.note.trim() || null,
       status: "PENDING",
@@ -452,7 +625,8 @@ const Booking = () => {
       distance: Number(form.distance),
       travelFee: travelFee,
       items: items,
-      paymentMethod: form.paymentMethod
+      paymentMethod: form.paymentMethod,
+      userVoucherId: selectedVoucherId
     };
 
     setSaving(true);
@@ -462,6 +636,9 @@ const Booking = () => {
         alert(result.message || "Không thể khởi tạo lịch hẹn");
         return;
       }
+
+      // Lưu trữ thành công -> Xóa bộ nhớ tạm
+      clearBookingCache();
 
       // Check if MoMo payment is needed
       if (payload.paymentMethod === "MOMO" || payload.depositAmount > 0) {
@@ -718,6 +895,79 @@ const Booking = () => {
                   </div>
 
                   <div className="payment-matrix-glass">
+                    {/* ===== VOUCHER - CHỈ HIỂN THỊ MÃ ĐÃ LƯU ===== */}
+                    {user && myVouchers.length > 0 && (
+                      <div className="voucher-selection-booking">
+                        <label className="section-label"><Ticket size={16} /> Ưu đãi của bạn</label>
+                        <div
+                          className={`voucher-dropdown-trigger ${isVoucherOpen ? 'open' : ''} ${selectedVoucher ? 'has-selected' : ''}`}
+                          onClick={() => setIsVoucherOpen(!isVoucherOpen)}
+                        >
+                          <div className="v-selected-info">
+                            {selectedVoucher ? (
+                              <>
+                                <span className="v-tag-glow">{selectedVoucher.voucher.code}</span>
+                                <span className="v-applied-name">{selectedVoucher.voucher.title}</span>
+                              </>
+                            ) : (
+                              <span className="v-placeholder">Chọn voucher để nhận ưu đãi ({myVouchers.length})</span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {selectedVoucher && (
+                              <span
+                                className="v-clear-btn"
+                                onClick={e => { e.stopPropagation(); setSelectedVoucherId(null); }}
+                                title="Bỏ áp dụng"
+                              >×</span>
+                            )}
+                            <ChevronDown size={18} className={isVoucherOpen ? 'rotate' : ''} />
+                          </div>
+                        </div>
+
+                        {isVoucherOpen && (
+                          <div className="voucher-list-dropdown animate-fade-in">
+                            {myVouchers.map(uv => {
+                              const v = uv.voucher;
+                              const meetMin = v.minOrderValue ? (serviceTotal + travelFee) >= v.minOrderValue : true;
+                              return (
+                                <div
+                                  key={uv.id}
+                                  className={`v-item ${selectedVoucherId === uv.id ? 'active' : ''} ${!meetMin ? 'disabled' : ''}`}
+                                  onClick={() => {
+                                    if (meetMin) {
+                                      setSelectedVoucherId(selectedVoucherId === uv.id ? null : uv.id);
+                                      setIsVoucherOpen(false);
+                                    }
+                                  }}
+                                >
+                                  <div className="v-check">
+                                    {selectedVoucherId === uv.id && <CheckCircle size={14} />}
+                                  </div>
+                                  <div className="v-details">
+                                    <div className="v-row-1">
+                                      <strong>{v.title}</strong>
+                                      <span className="v-code-mini">{v.code}</span>
+                                    </div>
+                                    <div className="v-row-2">
+                                      {v.minOrderValue > 0 ? (
+                                        <span>Đơn từ {v.minOrderValue.toLocaleString()}đ</span>
+                                      ) : (
+                                        <span>Mọi đơn hàng</span>
+                                      )}
+                                      {!meetMin && (
+                                        <span className="v-error">Cần thêm {(v.minOrderValue - (serviceTotal + travelFee)).toLocaleString()}đ</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="payment-method-selection">
                       <label className="section-label">Phương thức thanh toán</label>
                       <div className="payment-options">
@@ -765,9 +1015,17 @@ const Booking = () => {
               )}
 
               <div className="booking-nav-buttons">
-                {currentStep > 1 && (
+                {currentStep === 1 ? (
+                  <button 
+                    type="button" 
+                    onClick={() => setIsConfirmOpen(true)} 
+                    className="btn-cancel-premium"
+                  >
+                    Hủy bỏ
+                  </button>
+                ) : (
                   <button type="button" onClick={prevStep} className="btn-secondary-premium">
-                    <ChevronLeft size={18} /> Quay lại
+                    <ChevronLeft size={18} /> Trở về
                   </button>
                 )}
                 
@@ -849,9 +1107,16 @@ const Booking = () => {
             <div className="total-calculation-footer">
               <div className="calc-row" style={{ background: 'rgba(59, 130, 246, 0.05)', borderRadius: '12px', padding: '10px 15px', color: '#3b82f6', marginBottom: '10px' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800' }}>
-                  <Clock size={16} /> Thời gian thi công (Dự kiến):
+                  <Clock size={16} /> Thời gian dự kiến:
                 </span>
                 <strong style={{ fontSize: '1.2rem' }}>{totalDuration} phút</strong>
+              </div>
+
+              <div className="calc-row loyalty-calc" style={{ background: 'rgba(251, 191, 36, 0.08)', borderRadius: '12px', padding: '12px 15px', border: '1px dashed rgba(251, 191, 36, 0.3)', margin: '15px 0' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', color: '#fbbf24' }}>
+                  <Coins size={16} className="points-icon" /> Tích lũy dự kiến:
+                </span>
+                <strong style={{ fontSize: '1.2rem', color: '#fbbf24' }}>+{Math.floor((serviceTotal - (selectedVoucher?.voucher.discountType === 'SERVICE' ? 0 : (discountAmount || 0))) / 10000)} điểm</strong>
               </div>
               
               <div className="calc-row">
@@ -865,6 +1130,14 @@ const Booking = () => {
                 </span>
                 <span>{form.distance === "" && !isCalculatingDist ? "--VNĐ" : isCalculatingDist ? "Đang tính..." : travelFee > 0 ? `${travelFee.toLocaleString()}VNĐ` : "0VNĐ"}</span>
               </div>
+              
+              {discountAmount > 0 && (
+                <div className="calc-row discount-row" style={{ color: '#10b981', fontWeight: '600' }}>
+                  <span>Voucher giảm giá:</span>
+                  <span>-{discountAmount.toLocaleString()}VNĐ</span>
+                </div>
+              )}
+
               <div className="calc-row result">
                 <span>Tổng cộng:</span>
                 <strong>{totalPrice.toLocaleString()}VNĐ</strong>
@@ -896,35 +1169,151 @@ const Booking = () => {
             </div>
           </aside>
         </div>
-
-        <div className="booking-footer-minimal">
-          <button onClick={() => navigate("/")}>Hủy bỏ & Trở về </button>
-        </div>
       </div>
       {showSuccess && (
-        <div className="booking-modal-backdrop success-overlay" style={{ background: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(30px)', position: 'fixed', inset: 0, zIndex: 9999, display: 'grid', placeItems: 'center' }}>
-          <div className="success-glass-card" style={{ maxWidth: '500px', width: '90%', padding: '50px 40px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '40px', textAlign: 'center', boxShadow: '0 40px 100px rgba(0,0,0,0.5)', animation: 'modalSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-            <div className="success-icon-wrapper" style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e, #16a34a)', display: 'grid', placeItems: 'center', margin: '0 auto 30px', boxShadow: '0 0 50px rgba(34, 197, 94, 0.3)', color: '#fff' }}>
-              <CheckCircle size={50} strokeWidth={3} />
+        <div className="booking-modal-backdrop success-overlay" style={{ 
+          background: 'rgba(2, 6, 23, 0.97)', 
+          backdropFilter: 'blur(40px)', 
+          position: 'fixed', 
+          inset: 0, 
+          zIndex: 9999, 
+          display: 'grid', 
+          placeItems: 'center',
+          overflow: 'hidden'
+        }}>
+          {/* Decorative background lights */}
+          <div style={{ position: 'absolute', top: '10%', left: '10%', width: '30vw', height: '30vh', background: 'rgba(34, 197, 94, 0.1)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }}></div>
+          <div style={{ position: 'absolute', bottom: '10%', right: '10%', width: '40vw', height: '40vh', background: 'rgba(59, 130, 246, 0.1)', filter: 'blur(100px)', borderRadius: '50%', pointerEvents: 'none' }}></div>
+
+          <div className="success-glass-card" style={{ 
+            maxWidth: '540px', 
+            width: '92%', 
+            padding: '60px 50px', 
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 100%)', 
+            border: '1px solid rgba(255,255,255,0.12)', 
+            borderRadius: '48px', 
+            textAlign: 'center', 
+            boxShadow: '0 50px 100px rgba(0,0,0,0.6)', 
+            position: 'relative',
+            animation: 'cardScaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+            overflow: 'hidden'
+          }}>
+            {/* Glossy shine effect */}
+            <div style={{ 
+              position: 'absolute', 
+              top: '-100%', left: '-100%', width: '300%', height: '300%', 
+              background: 'linear-gradient(45deg, transparent 45%, rgba(255,255,255,0.05) 50%, transparent 55%)',
+              animation: 'shineRotation 6s linear infinite',
+              pointerEvents: 'none'
+            }}></div>
+
+            <div className="success-icon-container" style={{ position: 'relative', marginBottom: '40px' }}>
+              <div className="success-icon-pulse" style={{ 
+                position: 'absolute', 
+                top: '50%', left: '50%', 
+                width: '120px', height: '120px', 
+                margin: '-60px 0 0 -60px',
+                background: 'rgba(34, 197, 94, 0.2)',
+                borderRadius: '50%',
+                animation: 'pulseRing 2s infinite'
+              }}></div>
+              
+              <div className="success-icon-wrapper" style={{ 
+                width: '110px', height: '110px', 
+                borderRadius: '35%', 
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
+                display: 'grid', 
+                placeItems: 'center', 
+                margin: '0 auto', 
+                position: 'relative',
+                boxShadow: '0 20px 40px rgba(16, 185, 129, 0.35)', 
+                color: '#fff',
+                transform: 'rotate(-5deg)',
+                animation: 'iconEntrance 0.6s cubic-bezier(0.17, 0.67, 0.83, 1.2) both 0.3s'
+              }}>
+                <CheckCircle size={56} strokeWidth={2.5} />
+              </div>
             </div>
             
-            <h2 style={{ fontSize: '2.2rem', fontWeight: '900', color: '#fff', marginBottom: '16px', letterSpacing: '-0.02em' }}>Chúc mừng!</h2>
-            <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.6', marginBottom: '40px' }}>
-              Đặt lịch của quý khách đã được tiếp nhận thành công. Chuyên viên của <strong>CarCareHome</strong> sẽ liên hệ xác nhận trong giây lát.
+            <h2 className="display-font" style={{ 
+              fontSize: '2.8rem', 
+              fontWeight: '950', 
+              color: '#fff', 
+              margin: '0 0 20px', 
+              letterSpacing: '-0.04em',
+              lineHeight: 1,
+              background: 'linear-gradient(to bottom, #fff, #94a3b8)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              Đặt lịch thành công!
+            </h2>
+            
+            <div style={{ width: '60px', height: '4px', background: '#10b981', margin: '0 auto 30px', borderRadius: '10px' }}></div>
+
+            <p style={{ 
+              fontSize: '1.2rem', 
+              color: 'rgba(255,255,255,0.7)', 
+              lineHeight: '1.7', 
+              marginBottom: '50px',
+              fontWeight: '500' 
+            }}>
+              Cảm ơn quý khách đã tin tưởng. Chuyên viên của <span style={{ color: '#fff', fontWeight: '800' }}>CarCareHome</span> sẽ liên hệ xác nhận trong giây lát để đảm bảo lịch trình tốt nhất.
             </p>
 
-            <div style={{ display: 'grid', gap: '15px' }}>
+            <div style={{ display: 'grid', gap: '18px' }}>
               <button 
                 onClick={() => navigate("/my-bookings")} 
                 className="btn-primary-premium glow"
-                style={{ width: '100%', padding: '20px', borderRadius: '20px', fontSize: '1rem', fontWeight: '800' }}
+                style={{ 
+                  width: '100%', 
+                  padding: '22px', 
+                  borderRadius: '24px', 
+                  fontSize: '1.05rem', 
+                  fontWeight: '900',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  background: '#10b981',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  boxShadow: '0 15px 35px rgba(16, 185, 129, 0.4)',
+                  transition: 'all 0.3s'
+                 }}
+                 onMouseEnter={e => {
+                   e.target.style.transform = 'translateY(-4px)';
+                   e.target.style.boxShadow = '0 20px 45px rgba(16, 185, 129, 0.5)';
+                 }}
+                 onMouseLeave={e => {
+                   e.target.style.transform = 'translateY(0)';
+                   e.target.style.boxShadow = '0 15px 35px rgba(16, 185, 129, 0.4)';
+                 }}
               >
-                XEM LỊCH HẸN CỦA TÔI
+                XEM LỊCH HẸN TRÊN HỆ THỐNG
               </button>
+              
               <button 
                 onClick={() => navigate("/")} 
-                className="btn-secondary-premium"
-                style={{ width: '100%', padding: '18px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.6)' }}
+                style={{ 
+                  width: '100%', 
+                  padding: '18px', 
+                  borderRadius: '24px', 
+                  border: '1px solid rgba(255,255,255,0.15)', 
+                  background: 'rgba(255,255,255,0.03)', 
+                  color: 'rgba(255,255,255,0.5)',
+                  fontSize: '0.95rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: '0.3s'
+                }}
+                onMouseEnter={e => {
+                  e.target.style.background = 'rgba(255,255,255,0.08)';
+                  e.target.style.color = '#fff';
+                }}
+                onMouseLeave={e => {
+                  e.target.style.background = 'rgba(255,255,255,0.03)';
+                  e.target.style.color = 'rgba(255,255,255,0.5)';
+                }}
               >
                 QUAY LẠI TRANG CHỦ
               </button>
@@ -932,20 +1321,46 @@ const Booking = () => {
           </div>
           
           <style>{`
-            @keyframes modalSlideUp {
-              from { transform: translateY(40px); opacity: 0; }
-              to { transform: translateY(0); opacity: 1; }
+            @keyframes cardScaleIn {
+              from { transform: scale(0.85); opacity: 0; }
+              to { transform: scale(1); opacity: 1; }
+            }
+            @keyframes pulseRing {
+              0% { transform: scale(0.8); opacity: 0.8; }
+              100% { transform: scale(1.6); opacity: 0; }
+            }
+            @keyframes iconEntrance {
+              from { transform: scale(0) rotate(-45deg); opacity: 0; }
+              to { transform: scale(1) rotate(-5deg); opacity: 1; }
+            }
+            @keyframes shineRotation {
+              from { opacity: 0.3; transform: rotate(0deg) translateX(-50%); }
+              to { opacity: 0.3; transform: rotate(360deg) translateX(-50%); }
             }
             .success-overlay {
-              animation: fadeIn 0.4s ease;
+              animation: fadeInOverlay 0.5s ease forwards;
             }
-            @keyframes fadeIn {
+            @keyframes fadeInOverlay {
               from { opacity: 0; }
               to { opacity: 1; }
+            }
+            .display-font {
+              font-family: var(--font-display, 'Inter', sans-serif);
             }
           `}</style>
         </div>
       )}
+
+      <ConfirmModal 
+        isOpen={isConfirmOpen}
+        title="Hủy đặt lịch?"
+        message="Bạn có chắc chắn muốn hủy quá trình đặt lịch này? Các thông tin bạn đã nhập sẽ được lưu tạm trong 60 phút."
+        onConfirm={() => navigate("/")}
+        onCancel={() => setIsConfirmOpen(false)}
+        confirmText="Đồng ý hủy"
+        cancelText="Tiếp tục đặt"
+        type="danger"
+      />
     </div>
   );
 };

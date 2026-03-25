@@ -14,6 +14,7 @@ public class User {
 
     private String name;
 
+    @Column(unique = true, nullable = false)
     private String email;
 
     @com.fasterxml.jackson.annotation.JsonIgnore
@@ -21,6 +22,15 @@ public class User {
 
     private String phone;
     private String avatar;
+
+    @Column(name = "points", nullable = false)
+    private Integer points = 0;
+
+    @Column(name = "points_lifetime", nullable = false)
+    private Integer pointsLifetime = 0;
+
+    @Column(name = "tier", nullable = false)
+    private String tier = "BRONZE"; // BRONZE, SILVER, GOLD, VIP
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")

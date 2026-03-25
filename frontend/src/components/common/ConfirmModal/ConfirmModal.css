@@ -1,0 +1,139 @@
+/* Minimalist & Luxury Confirm Modal */
+
+.mod-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.mod-container {
+  background: rgba(15, 23, 42, 0.85); /* Dùng nền tối thẳm cho sang trọng */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 32px;
+  width: 100%;
+  max-width: 400px; /* Thu nhỏ bề ngang để tạo sự tập trung */
+  padding: 40px;
+  position: relative;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.mod-close-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: transparent;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.mod-close-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.mod-content {
+  margin-bottom: 32px;
+}
+
+/* Icon Icon Container */
+.mod-icon-wrapper {
+  margin: 0 auto 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.mod-icon-wrapper.danger { background: rgba(239, 68, 68, 0.1); color: #f87171; }
+.mod-icon-wrapper.warning { background: rgba(245, 158, 11, 0.1); color: #fbbf24; }
+.mod-icon-wrapper.info { background: rgba(14, 165, 233, 0.1); color: #38bdf8; }
+
+.mod-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+
+.mod-message {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Actions Section */
+.mod-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.mod-actions button {
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+}
+
+/* Nút phụ - Trở về */
+.mod-btn-secondary {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1;
+}
+
+.mod-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #fff !important;
+  color: #fff;
+}
+
+/* Nút chính - Xác nhận */
+.mod-btn-primary {
+  color: #fff;
+}
+
+.mod-btn-primary.danger { background: #e11d48; box-shadow: 0 10px 20px -5px rgba(225, 29, 72, 0.3); }
+.mod-btn-primary.warning { background: #d97706; box-shadow: 0 10px 20px -5px rgba(217, 119, 6, 0.3); }
+.mod-btn-primary.info { background: #0284c7; box-shadow: 0 10px 20px -5px rgba(2, 132, 199, 0.3); }
+
+.mod-btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.mod-btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Entry Animation */
+.animate-in {
+  animation: modZoomIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modZoomIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

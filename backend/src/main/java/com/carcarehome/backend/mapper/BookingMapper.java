@@ -47,6 +47,14 @@ public class BookingMapper {
 
         booking.setBookingDate(request.getBookingDate());
         booking.setBookingTime(request.getBookingTime());
+        
+        if (request.getBookingEndTime() != null) {
+            booking.setBookingEndTime(request.getBookingEndTime());
+        } else if (request.getBookingTime() != null) {
+            // Default: 45 minutes duration
+            booking.setBookingEndTime(request.getBookingTime().plusMinutes(45));
+        }
+        
         booking.setAddressName(request.getAddressName());
         booking.setNote(request.getNote());
         booking.setStatus(request.getStatus());

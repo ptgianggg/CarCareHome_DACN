@@ -15,6 +15,7 @@ import Booking from "@/pages/Booking/Booking";
 import MyBookings from "@/pages/MyBookings/MyBookings";
 import ServiceList from "@/pages/ServiceList/ServiceList";
 import ServiceDetail from "@/pages/ServiceDetail/ServiceDetail";
+import Loyalty from "@/pages/Loyalty/Loyalty";
 import PaymentCallback from "@/pages/Booking/PaymentCallback";
 import ServiceManagement from "@/pages/Admin/Services";
 import CategoriesManagement from "@/pages/Admin/Categories";
@@ -26,6 +27,9 @@ import MyTasks from "@/pages/Staff/MyTasks";
 import LeaveRequest from "@/pages/Staff/LeaveRequest";
 import LeaveManagement from "@/pages/Admin/LeaveManagement";
 import AccountManagement from "@/pages/Admin/AccountManagement";
+import AdminDashboard from "@/pages/Admin/Dashboard";
+import ReviewManagement from "@/pages/Admin/ReviewManagement";
+import VoucherManagement from "@/pages/Admin/Vouchers";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -108,6 +112,7 @@ function App() {
                 <Route path="profile" element={<UserRoute requireAuth><Profile /></UserRoute>} />
                 <Route path="booking" element={<UserRoute requireAuth><Booking /></UserRoute>} />
                 <Route path="my-bookings" element={<UserRoute requireAuth><MyBookings /></UserRoute>} />
+                <Route path="loyalty" element={<UserRoute requireAuth><Loyalty /></UserRoute>} />
                 <Route path="payment/callback" element={<PaymentCallback />} />
               </Route>
 
@@ -120,10 +125,13 @@ function App() {
               
               {/* --- ADMIN ROUTES --- */}
               <Route path="/admin" element={<ProtectedRoute requiredRole="ADMIN"><AdminLayout /></ProtectedRoute>}>
-                <Route index element={<Navigate to="booking" replace />} />
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="services" element={<ServiceManagement />} />
                 <Route path="categories" element={<CategoriesManagement />} />
                 <Route path="booking" element={<BookingManagement />} />
+                <Route path="vouchers" element={<VoucherManagement />} />
+                <Route path="reviews" element={<ReviewManagement />} />
                 <Route path="leave" element={<LeaveManagement />} />
                 <Route path="accounts" element={<AccountManagement />} />
                 <Route path="settings" element={<SystemSettings />} />
