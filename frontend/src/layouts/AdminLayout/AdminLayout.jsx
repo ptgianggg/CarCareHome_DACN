@@ -32,6 +32,10 @@ const AdminLayout = () => {
         </div>
 
         <nav className="sidebar-nav" style={{ marginTop: "2rem" }}>
+          <NavLink to="/admin/dashboard" className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 3v18h18M18 9l-5 5-3-3-4 4"/></svg>
+            Thống kê
+          </NavLink>
           <NavLink to="/admin/services" className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
             Dịch vụ
@@ -43,6 +47,14 @@ const AdminLayout = () => {
           <NavLink to="/admin/booking" className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             Lịch hẹn
+          </NavLink>
+          <NavLink to="/admin/vouchers" className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 5l-1.761 1.761a2 2 0 0 0 0 2.828L14.414 11l-1.176 1.176a2 2 0 0 1-2.828 0L9.234 11l-1.176 1.176a2 2 0 0 1-2.828 0L4 11v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5h-5z"/><path d="M15 5h3a2 2 0 0 1 2 2v2"/><path d="M12 17h.01"/><path d="M12 14h.01"/></svg>
+            Voucher
+          </NavLink>
+          <NavLink to="/admin/reviews" className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            Đánh giá
           </NavLink>
           <NavLink to="/admin/leave" className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5c-1.1 0-2 .9-2 2v2"/><circle cx="8.5" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>
@@ -58,11 +70,7 @@ const AdminLayout = () => {
           </NavLink>
         </nav>
         
-        <div style={{ marginTop: "auto", paddingTop: "20px" }}>
-          <button className="primary-button" onClick={() => navigate("/")} style={{ width: "100%", padding: "12px", fontSize: "0.85rem" }}>
-            Ra trang web
-          </button>
-        </div>
+
       </aside>
 
       {/* MAIN CONTENT AREA */}

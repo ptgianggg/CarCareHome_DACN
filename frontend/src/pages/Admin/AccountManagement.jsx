@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { getUsers, updateUserRole, deleteUser } from '@/services/api';
 import toast from 'react-hot-toast';
 import { Users, Shield, Trash2, Search, ArrowRightLeft } from 'lucide-react';
@@ -9,6 +10,8 @@ const AccountManagement = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('USER'); // 'USER' | 'STAFF'
+
+    const { user: currentUser } = useAuth();
 
     useEffect(() => {
         fetchData();
@@ -27,6 +30,10 @@ const AccountManagement = () => {
     };
 
     const handleRoleChange = async (userId, newRole) => {
+        if (currentUser && userId === currentUser.id) {
+            toast.error("Bạn không thể tự thay đổi quyền hạn của chính mình!");
+            return;
+        }
         const actionLabel = newRole === 'STAFF' ? 'cấp quyền Staff' : 'thu hồi quyền Staff (đổi thành User)';
         if (window.confirm(`Bạn có chắc chắn muốn ${actionLabel} cho tài khoản này?`)) {
             try {
@@ -44,6 +51,10 @@ const AccountManagement = () => {
     };
 
     const handleDelete = async (userId) => {
+        if (currentUser && userId === currentUser.id) {
+            toast.error("HÀNH ĐỘNG BỊ CHẶN: Bạn không thể tự xóa tài khoản của chính mình!");
+            return;
+        }
         if (window.confirm("HÀNH ĐỘNG NGUY HIỂM: Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản này? Thao tác này có thể không thực hiện được nếu người dùng đang có đơn/lịch hẹn.")) {
             try {
                 const res = await deleteUser(userId);

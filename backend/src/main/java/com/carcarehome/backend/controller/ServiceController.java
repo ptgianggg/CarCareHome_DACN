@@ -21,7 +21,7 @@ public class ServiceController {
     }
 
     @GetMapping("/{id}")
-    public Service getServiceById(@PathVariable Long id) {
+    public Service getServiceById(@PathVariable("id") Long id) {
         return serviceService.getServiceById(id).orElse(null);
     }
 
@@ -32,13 +32,13 @@ public class ServiceController {
     }
 
     @PutMapping("/{id}")
-    public Service updateService(@PathVariable Long id, @RequestBody Service service) {
+    public Service updateService(@PathVariable("id") Long id, @RequestBody Service service) {
         service.setId(id);
         return serviceService.saveService(service);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteService(@PathVariable Long id) {
+    public void deleteService(@PathVariable("id") Long id) {
         serviceService.deleteService(id);
     }
 }

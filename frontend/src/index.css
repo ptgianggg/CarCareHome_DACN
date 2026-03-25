@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@500;700;800&display=swap");
 
 :root {
   --bg-900: #06111f;
@@ -23,8 +23,8 @@
   --radius-sm: 18px;
   --radius-md: 26px;
   --radius-lg: 34px;
-  --font-body: "Manrope", system-ui, sans-serif;
-  --font-display: "Space Grotesk", "Manrope", system-ui, sans-serif;
+  --font-body: "Roboto", "Inter", system-ui, sans-serif;
+  --font-display: "Roboto", "Montserrat", "Inter", system-ui, sans-serif;
   --text: var(--text-primary);
   --text-h: var(--text-strong);
   --bg: var(--bg-900);

@@ -13,9 +13,11 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 @Entity
 @Data
@@ -32,9 +34,13 @@ public class Booking {
     @Column(name = "payment_status", length = 30)
     private String paymentStatus; // UNPAID, DEPOSITED, PAID_FULL
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "assigned_staff_id")
-    private User assignedStaff;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "booking_staff",
+        joinColumns = @JoinColumn(name = "booking_id"),
+        inverseJoinColumns = @JoinColumn(name = "staff_id")
+    )
+    private java.util.List<User> assignedStaffs = new java.util.ArrayList<>();
 
     @Column(name = "proof_image", columnDefinition = "LONGTEXT")
     private String proofImage;
@@ -43,6 +49,9 @@ public class Booking {
 
     @Column(columnDefinition = "TEXT")
     private String reviewComment;
+
+    @Column(name = "show_on_home")
+    private Boolean showOnHome = false;
 
     @Column(name = "customer_name", nullable = false, length = 120)
     private String customerName;
@@ -68,13 +77,16 @@ public class Booking {
     @Column(name = "booking_time", nullable = false)
     private LocalTime bookingTime;
 
+    @Column(name = "booking_end_time")
+    private LocalTime bookingEndTime;
+
     @Column(name = "address_name", nullable = false, length = 120)
     private String addressName;
 
     @Column(length = 500)
     private String note;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     private String status;
 
     @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
@@ -89,14 +101,42 @@ public class Booking {
     @Column(name = "travel_fee", precision = 12, scale = 2)
     private BigDecimal travelFee;
 
+    @Column(name = "discount_amount", precision = 12, scale = 2)
+    private BigDecimal discountAmount;
+
+    @Column(name = "voucher_code", length = 50)
+    private String voucherCode;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "points_earned")
+    private Integer pointsEarned;
+
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<BookingItem> items = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private java.util.List<Payment> payments = new java.util.ArrayList<>();
+
+    /**
+     * Tính số tiền còn lại khách hàng cần thanh toán
+     */
+    public BigDecimal getRemainingAmount() {
+        BigDecimal total = totalPrice != null ? totalPrice : BigDecimal.ZERO;
+        BigDecimal deposit = depositAmount != null ? depositAmount : BigDecimal.ZERO;
+        if ("PAID_FULL".equals(paymentStatus)) {
+            return BigDecimal.ZERO;
+        }
+        return total.subtract(deposit).max(BigDecimal.ZERO);
+    }
 
     public void addItem(BookingItem item) {
         items.add(item);
@@ -122,6 +162,9 @@ public class Booking {
         }
         if (travelFee == null) {
             travelFee = BigDecimal.ZERO;
+        }
+        if (discountAmount == null) {
+            discountAmount = BigDecimal.ZERO;
         }
         createdAt = now;
         updatedAt = now;

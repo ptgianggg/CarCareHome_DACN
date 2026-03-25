@@ -21,7 +21,9 @@ const SystemSettings = () => {
         fontFamily: "'Inter', sans-serif",
         contactPhone: '',
         contactEmail: '',
-        contactAddress: ''
+        contactAddress: '',
+        shopLat: 10.84641,
+        shopLng: 106.77393
     });
 
     const [loading, setLoading] = useState(true);
@@ -253,9 +255,22 @@ const SystemSettings = () => {
                             <input type="text" name="contactEmail" value={settings.contactEmail} onChange={handleChange} />
                         </div>
                         <div className="input-group">
-                            <label>Địa chỉ</label>
+                            <label>Địa chỉ hiển thị</label>
                             <textarea name="contactAddress" value={settings.contactAddress} onChange={handleChange}></textarea>
                         </div>
+                        <div className="tab-divider"></div>
+                        <h4 className="sub-section-title">Cấu hình Tọa độ (Dùng tính khoảng cách)</h4>
+                        <div className="input-row">
+                            <div className="input-group">
+                                <label>Vĩ độ (Latitude)</label>
+                                <input type="number" step="any" name="shopLat" value={settings.shopLat} onChange={handleChange} />
+                            </div>
+                            <div className="input-group">
+                                <label>Kinh độ (Longitude)</label>
+                                <input type="number" step="any" name="shopLng" value={settings.shopLng} onChange={handleChange} />
+                            </div>
+                        </div>
+                        <p className="helper-text">Mẹo: Bạn có thể lấy tọa độ từ Google Maps (Chuột phải vào vị trí trên bản đồ để xem)</p>
                     </div>
                 </div>
 
@@ -309,6 +324,9 @@ const SystemSettings = () => {
                 input:checked + .slider:before { transform: translateX(26px); }
                 .slider.round { border-radius: 34px; }
                 .slider.round:before { border-radius: 50%; }
+                .tab-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 1.5rem 0; }
+                .sub-section-title { font-size: 0.95rem; color: #fff; margin-bottom: 1rem; }
+                .helper-text { font-size: 0.8rem; color: #64748b; font-style: italic; }
             `}} />
         </div>
     );

@@ -67,11 +67,37 @@ function ServiceManagement() {
         localStorage.setItem(LOCAL_IMAGE_MAP_KEY, JSON.stringify(localImageMap));
     }, [localImageMap]);
 
+
+
+    const PRICE_OPTIONS = [
+        { value: "ALL", label: "Tất cả giá" },
+        { value: "UNDER_100", label: "Dưới 100k" },
+        { value: "100_500", label: "100k - 500k" },
+        { value: "500_1000", label: "500k - 1tr" },
+        { value: "OVER_1000", label: "Trên 1tr" }
+    ];
+
+    const STATUS_OPTIONS_FILTER = [
+        { value: "ALL", label: "Tất cả trạng thái" },
+        { value: "ACTIVE", label: "Đang hoạt động" },
+        { value: "INACTIVE", label: "Tạm dừng" }
+    ];
+
+    const [filterPrice, setFilterPrice] = useState("ALL");
+    const [filterStatus, setFilterStatus] = useState("ALL");
+    const [isPriceOpen, setIsPriceOpen] = useState(false);
+    const [isStatusOpen, setIsStatusOpen] = useState(false);
+
+    const priceRef = useRef(null);
+    const statusRef = useRef(null);
+
     useEffect(() => {
         fetchData();
         const handleClickOutside = (e) => {
             if (catFilterRef.current && !catFilterRef.current.contains(e.target)) setIsCatFilterOpen(false);
             if (catFormRef.current && !catFormRef.current.contains(e.target)) setIsCatFormOpen(false);
+            if (priceRef.current && !priceRef.current.contains(e.target)) setIsPriceOpen(false);
+            if (statusRef.current && !statusRef.current.contains(e.target)) setIsStatusOpen(false);
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -104,9 +130,20 @@ function ServiceManagement() {
             const matchesSearch = (svc.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (svc.description || "").toLowerCase().includes(searchTerm.toLowerCase());
             const matchesCategory = selectedCategory === "ALL" || svc.category === selectedCategory;
-            return matchesSearch && matchesCategory;
+            
+            let matchesPrice = true;
+            if (filterPrice === "UNDER_100") matchesPrice = svc.price < 100000;
+            else if (filterPrice === "100_500") matchesPrice = svc.price >= 100000 && svc.price <= 500000;
+            else if (filterPrice === "500_1000") matchesPrice = svc.price > 500000 && svc.price <= 1000000;
+            else if (filterPrice === "OVER_1000") matchesPrice = svc.price > 1000000;
+
+            let matchesStatus = true;
+            if (filterStatus === "ACTIVE") matchesStatus = svc.active;
+            else if (filterStatus === "INACTIVE") matchesStatus = !svc.active;
+
+            return matchesSearch && matchesCategory && matchesPrice && matchesStatus;
         });
-    }, [services, searchTerm, selectedCategory]);
+    }, [services, searchTerm, selectedCategory, filterPrice, filterStatus]);
 
     const paginatedServices = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -114,7 +151,7 @@ function ServiceManagement() {
     }, [filteredServices, currentPage]);
 
     const totalPages = Math.ceil((filteredServices || []).length / ITEMS_PER_PAGE);
-    useEffect(() => setCurrentPage(1), [searchTerm, selectedCategory]);
+    useEffect(() => setCurrentPage(1), [searchTerm, selectedCategory, filterPrice, filterStatus]);
 
     const summary = useMemo(() => ({
         total: (services || []).length,
@@ -217,8 +254,8 @@ function ServiceManagement() {
                 <article className="panel" style={{ padding: '0', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', overflow: 'hidden' }}>
 
                     <div className="panel-heading" style={{ padding: '30px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
-                        <div style={{ display: 'flex', gap: '20px', flex: 1, minWidth: '400px' }}>
-                            <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+                        <div style={{ display: 'flex', gap: '15px', flex: 1, minWidth: '400px', flexWrap: 'wrap' }}>
+                            <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
                                 <input
                                     type="text"
                                     placeholder="Tìm kiếm dịch vụ..."
@@ -232,17 +269,48 @@ function ServiceManagement() {
                             </div>
 
                             <div style={{ position: 'relative' }} ref={catFilterRef}>
-                                <div onClick={() => setIsCatFilterOpen(!isCatFilterOpen)} style={{ height: '60px', minWidth: '240px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', display: 'flex', alignItems: 'center', padding: '0 20px', cursor: 'pointer', userSelect: 'none' }}>
-                                    <span style={{ color: '#fff', fontWeight: '800', flex: 1 }}>{selectedCategory === "ALL" ? " Tất cả danh mục" : selectedCategory}</span>
-                                    <svg style={{ transform: isCatFilterOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', opacity: 0.5 }} width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3"><path d="m6 9 6 6 6-6" /></svg>
+                                <div onClick={() => setIsCatFilterOpen(!isCatFilterOpen)} style={{ height: '60px', minWidth: '180px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', display: 'flex', alignItems: 'center', padding: '0 20px', cursor: 'pointer', userSelect: 'none' }}>
+                                    <span style={{ color: '#fff', fontWeight: '800', flex: 1, fontSize: '0.9rem' }}>{selectedCategory === "ALL" ? "Tất cả danh mục" : selectedCategory}</span>
+                                    <svg style={{ transform: isCatFilterOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', opacity: 0.5 }} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3"><path d="m6 9 6 6 6-6" /></svg>
                                 </div>
                                 {isCatFilterOpen && (
-                                    <div style={{ position: 'absolute', top: '70px', width: '100%', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '18px', padding: '8px', zIndex: 100, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease' }}>
-                                        <div onClick={() => { setSelectedCategory("ALL"); setIsCatFilterOpen(false); }} style={{ padding: '14px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: selectedCategory === "ALL" ? '#3b82f6' : '#94a3b8', background: selectedCategory === "ALL" ? 'rgba(59, 130, 246, 0.1)' : 'transparent' }}> Tất cả danh mục</div>
+                                    <div style={{ position: 'absolute', top: '70px', width: '220px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '18px', padding: '8px', zIndex: 100, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease' }}>
+                                        <div onClick={() => { setSelectedCategory("ALL"); setIsCatFilterOpen(false); }} style={{ padding: '12px 14px', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: selectedCategory === "ALL" ? '#3b82f6' : '#94a3b8', background: selectedCategory === "ALL" ? 'rgba(59, 130, 246, 0.1)' : 'transparent', fontSize: '0.85rem' }}> Tất cả danh mục</div>
                                         {(categoryOptions || []).map(cat => (
-                                            <div key={cat.id} onClick={() => { setSelectedCategory(cat.name); setIsCatFilterOpen(false); }} style={{ padding: '14px 18px', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: selectedCategory === cat.name ? '#3b82f6' : '#94a3b8', background: selectedCategory === cat.name ? 'rgba(59, 130, 246, 0.1)' : 'transparent', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                {cat.icon && <img src={cat.icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />}
+                                            <div key={cat.id} onClick={() => { setSelectedCategory(cat.name); setIsCatFilterOpen(false); }} style={{ padding: '12px 14px', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: selectedCategory === cat.name ? '#3b82f6' : '#94a3b8', background: selectedCategory === cat.name ? 'rgba(59, 130, 246, 0.1)' : 'transparent', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem' }}>
                                                 {cat.name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ position: 'relative' }} ref={priceRef}>
+                                <div onClick={() => setIsPriceOpen(!isPriceOpen)} style={{ height: '60px', minWidth: '160px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', display: 'flex', alignItems: 'center', padding: '0 20px', cursor: 'pointer', userSelect: 'none' }}>
+                                    <span style={{ color: '#fff', fontWeight: '800', flex: 1, fontSize: '0.9rem' }}>{PRICE_OPTIONS.find(o => o.value === filterPrice).label}</span>
+                                    <svg style={{ transform: isPriceOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', opacity: 0.5 }} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3"><path d="m6 9 6 6 6-6" /></svg>
+                                </div>
+                                {isPriceOpen && (
+                                    <div style={{ position: 'absolute', top: '70px', width: '180px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '18px', padding: '8px', zIndex: 100, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease' }}>
+                                        {PRICE_OPTIONS.map(opt => (
+                                            <div key={opt.value} onClick={() => { setFilterPrice(opt.value); setIsPriceOpen(false); }} style={{ padding: '12px 14px', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: filterPrice === opt.value ? '#3b82f6' : '#94a3b8', background: filterPrice === opt.value ? 'rgba(59, 130, 246, 0.1)' : 'transparent', fontSize: '0.85rem' }}>
+                                                {opt.label}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ position: 'relative' }} ref={statusRef}>
+                                <div onClick={() => setIsStatusOpen(!isStatusOpen)} style={{ height: '60px', minWidth: '180px', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '18px', display: 'flex', alignItems: 'center', padding: '0 20px', cursor: 'pointer', userSelect: 'none' }}>
+                                    <span style={{ color: '#fff', fontWeight: '800', flex: 1, fontSize: '0.9rem' }}>{STATUS_OPTIONS_FILTER.find(o => o.value === filterStatus).label}</span>
+                                    <svg style={{ transform: isStatusOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', opacity: 0.5 }} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3"><path d="m6 9 6 6 6-6" /></svg>
+                                </div>
+                                {isStatusOpen && (
+                                    <div style={{ position: 'absolute', top: '70px', width: '200px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '18px', padding: '8px', zIndex: 100, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', animation: 'slideUp 0.3s ease' }}>
+                                        {STATUS_OPTIONS_FILTER.map(opt => (
+                                            <div key={opt.value} onClick={() => { setFilterStatus(opt.value); setIsStatusOpen(false); }} style={{ padding: '12px 14px', borderRadius: '12px', cursor: 'pointer', fontWeight: '700', color: filterStatus === opt.value ? '#3b82f6' : '#94a3b8', background: filterStatus === opt.value ? 'rgba(59, 130, 246, 0.1)' : 'transparent', fontSize: '0.85rem' }}>
+                                                {opt.label}
                                             </div>
                                         ))}
                                     </div>
@@ -378,34 +446,94 @@ function ServiceManagement() {
             )}
 
             {detailService && (
-                <div className="service-modal-backdrop" style={{ background: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(15px)' }} onClick={() => setDetailService(null)}>
-                    <article className="panel service-modal" style={{ maxWidth: '850px', width: '95%', padding: '0', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ padding: '35px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between' }}>
+                <div className="service-modal-backdrop" style={{ background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(25px)', zIndex: 1001, position: 'fixed', inset: 0, display: 'grid', placeItems: 'center', padding: '20px' }} onClick={() => setDetailService(null)}>
+                    <article className="panel service-modal" style={{ maxWidth: '900px', width: '100%', padding: '0', background: 'linear-gradient(135deg, #0f172a 0%, #020617 100%)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '32px', overflow: 'hidden', boxShadow: '0 50px 100px rgba(0,0,0,0.6)', maxHeight: '95vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+                        
+                        <div style={{ padding: '40px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: 'rgba(255,255,255,0.01)', flexShrink: 0 }}>
                             <div>
-                                <p className="eyebrow" style={{ color: '#3b82f6', fontWeight: '900' }}>HỒ SƠ DỊCH VỤ</p>
-                                <h3 style={{ fontSize: '2.5rem', fontWeight: '900', margin: '5px 0' }}>{detailService.name}</h3>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                    <span style={{ padding: '6px 14px', borderRadius: '100px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', fontSize: '0.65rem', fontWeight: '900', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                                        Chi tiết dịch vụ #{detailService.id}
+                                    </span>
+                                    <span className={`status ${detailService.active ? 'success' : 'warning'}`} style={{ padding: '6px 14px', borderRadius: '100px', fontSize: '0.7rem', fontWeight: '900' }}>
+                                        {detailService.active ? "ĐANG KINH DOANH" : "ĐÃ TẠM DỪNG"}
+                                    </span>
+                                </div>
+                                <h3 style={{ fontSize: '2.4rem', fontWeight: '900', margin: '0', letterSpacing: '-0.02em', color: '#fff' }}>{detailService.name}</h3>
                             </div>
-                            <button onClick={() => setDetailService(null)} style={{ border: 'none', background: 'transparent', color: '#fff', fontSize: '2rem', cursor: 'pointer' }}>×</button>
+                            <button onClick={() => setDetailService(null)} style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.3s' }}>
+                                <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                            </button>
                         </div>
-                        <div style={{ padding: '30px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-                                <div>
-                                    <p className="eyebrow">🎨 HÌNH ẢNH</p>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
-                                        {(detailService.images || []).map((img, i) => <img key={i} src={img} alt="" style={{ width: '100%', borderRadius: '14px' }} />)}
+
+                        <div style={{ overflowY: 'auto', padding: '40px', flex: 1 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) 1.5fr', gap: '40px' }}>
+                                
+                                <section>
+                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: 'rgba(255,255,255,0.3)', marginBottom: '20px', letterSpacing: '2px', textTransform: 'uppercase' }}>Hình ảnh thực tế</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                        {(() => {
+                                            const imgs = (detailService.images && detailService.images.length > 0) ? detailService.images : (localImageMap[String(detailService.id)] || []);
+                                            if (imgs.length === 0) return (
+                                                <div style={{ height: '260px', borderRadius: '24px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)', display: 'grid', placeItems: 'center', color: 'rgba(255,255,255,0.2)' }}>
+                                                    Không có hình ảnh
+                                                </div>
+                                            );
+                                            return (
+                                                <>
+                                                    <img src={imgs[0]} alt="" style={{ width: '100%', height: '320px', objectFit: 'cover', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '12px' }}>
+                                                        {imgs.slice(1).map((link, idx) => (
+                                                            <img key={idx} src={link} alt="" style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} />
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
-                                </div>
-                                <div>
-                                    <p className="eyebrow">📊 THÔNG TIN</p>
-                                    <p><strong>Danh mục:</strong> {detailService.category}</p>
-                                    <p><strong>Thời gian:</strong> {detailService.duration} phút</p>
-                                    <p><strong>Trình trạng:</strong> {detailService.active ? "Đang cung cấp" : "Đã tạm dừng"}</p>
-                                    <div style={{ marginTop: '20px', padding: '20px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '18px' }}>
-                                        <p style={{ margin: 0, opacity: 0.6 }}>GIÁ NIÊM YẾT</p>
-                                        <h3 style={{ margin: 0, fontSize: '2rem', color: '#3b82f6' }}>{formatPrice(detailService.price)}</h3>
+                                </section>
+
+                                <section>
+                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: 'rgba(255,255,255,0.3)', marginBottom: '20px', letterSpacing: '2px', textTransform: 'uppercase' }}>Thông tin chi tiết</h4>
+                                    
+                                    <div style={{ display: 'grid', gap: '20px' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <p style={{ margin: '0 0 10px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>DANH MỤC NHÓM</p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <span style={{ padding: '6px 14px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', fontWeight: '900', fontSize: '0.9rem' }}>{detailService.category}</span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                <p style={{ margin: '0 0 10px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>THỜI GIAN THI CÔNG</p>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fff', fontSize: '1.2rem', fontWeight: '900' }}>
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                                                    {detailService.duration} phút
+                                                </div>
+                                            </div>
+
+                                            <div style={{ background: 'rgba(59, 130, 246, 0.08)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                                <p style={{ margin: '0 0 10px', fontSize: '0.75rem', color: '#3b82f6', fontWeight: '900' }}>GIÁ NIÊM YẾT</p>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fff', fontSize: '1.6rem', fontWeight: '900' }}>
+                                                    {formatPrice(detailService.price)}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: 'rgba(255,255,255,0.02)', padding: '25px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <p style={{ margin: '0 0 15px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', fontWeight: '700' }}>MÔ TẢ DỊCH VỤ</p>
+                                            <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', lineHeight: '1.7', fontSize: '1rem' }}>
+                                                {detailService.description || "Chưa có mô tả chi tiết cho dịch vụ này."}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                </section>
                             </div>
+                        </div>
+
+                        <div style={{ padding: '30px 40px', background: 'rgba(0,0,0,0.3)', textAlign: 'right', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <button onClick={() => setDetailService(null)} className="primary-button" style={{ padding: '18px 60px', borderRadius: '20px', fontWeight: '900' }}>HOÀN TẤT XEM</button>
                         </div>
                     </article>
                 </div>

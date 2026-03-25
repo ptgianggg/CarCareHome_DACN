@@ -52,11 +52,7 @@ const StaffLayout = () => {
                     </NavLink>
                 </nav>
 
-                <div style={{ marginTop: "auto" }}>
-                    <button className="staff-primary-btn" onClick={() => navigate("/")} style={{ width: "100%", padding: "12px", fontSize: "0.85rem", background: 'var(--staff-glass-strong)', border: '1px solid var(--staff-border)' }}>
-                        Về trang chủ
-                    </button>
-                </div>
+
             </aside>
 
             <main className="staff-main">

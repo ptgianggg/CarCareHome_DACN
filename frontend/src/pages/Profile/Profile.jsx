@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Camera, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
+import { Camera, Mail, Phone, ShieldCheck, UserRound, Star, Trophy, Target, Coins } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { getProfile, updateProfile, uploadAvatar } from "@/services/api";
+import { getProfile, updateProfile, uploadAvatar, getProfilePerformance } from "@/services/api";
 import FormInput from "@/components/common/FormInput/FormInput";
 import "./Profile.css";
 
@@ -13,35 +13,40 @@ const Profile = () => {
     phone: "",
     avatar: ""
   });
+  const [performance, setPerformance] = useState(null);
+  const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const loadData = async () => {
       try {
-        const data = await getProfile();
-        if (data) {
+        const [profileData, perfData] = await Promise.all([
+          getProfile(),
+          (user?.role === "STAFF" || user?.role === "ROLE_STAFF") ? getProfilePerformance() : Promise.resolve(null)
+        ]);
+        
+        if (profileData) {
           setFormData({
-            name: data.name || "",
-            email: data.email || "",
-            phone: data.phone || "",
-            avatar: data.avatar || ""
+            name: profileData.name || "",
+            email: profileData.email || "",
+            phone: profileData.phone || "",
+            avatar: profileData.avatar || ""
           });
+          setPoints(profileData.points || 0);
         }
-      } catch {
-        if (user) {
-          setFormData((prev) => ({
-            ...prev,
-            name: user.name || "",
-            email: user.email || ""
-          }));
+        
+        if (perfData) {
+          setPerformance(perfData);
         }
+      } catch (err) {
+        console.error("Load profile data failed:", err);
       }
     };
 
-    loadProfile();
+    loadData();
   }, [user]);
 
   const roleLabel = useMemo(() => {
@@ -112,8 +117,8 @@ const Profile = () => {
       <section className="profile-hero page-shell">
         <div className="profile-hero-copy">
           <span className="tag-eyebrow">Tài khoản cá nhân</span>
-          <h1>Giữ thông tin hồ sơ rõ ràng để các bước đặt lịch và xác nhận diễn ra mượt hơn.</h1>
-          <p>Cập nhật tên, số điện thoại và ảnh đại diện để đội ngũ hỗ trợ nhận đúng người, đúng lịch và đúng ngữ cảnh.</p>
+          
+          
         </div>
       </section>
 
@@ -147,11 +152,52 @@ const Profile = () => {
             <p className="user-email">{formData.email || "Chưa có email"}</p>
             <span className="profile-badge">{roleLabel}</span>
 
-            <div className="profile-meta-list">
-              <div className="profile-meta-item">
-                <UserRound size={16} />
-                <span>Hồ sơ được dùng để đồng bộ lịch hẹn và xác nhận thanh toán.</span>
+            {performance && (
+              <div className="staff-performance-card surface-card">
+                  <div className="perf-item">
+                    <div className="perf-icon gold"><Trophy size={16} /></div>
+                    <div className="perf-body">
+                      <span>Điểm đánh giá</span>
+                      <div className="perf-val-row">
+                        <strong>{performance.averageRating?.toFixed(1) || "0.0"}</strong>
+                        <div className="perf-stars">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              size={12} 
+                              fill={i < Math.round(performance.averageRating || 0) ? "#fbbf24" : "none"} 
+                              stroke={i < Math.round(performance.averageRating || 0) ? "#fbbf24" : "rgba(255,255,255,0.2)"} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="perf-item">
+                    <div className="perf-icon blue"><Target size={16} /></div>
+                    <div className="perf-body">
+                      <span>Tổng lượt phục vụ</span>
+                      <strong>{performance.totalJobs || 0} đơn</strong>
+                    </div>
+                  </div>
               </div>
+            )}
+
+            {/* Loyalty Points for Customers */}
+            {(!performance && (user?.role === "USER" || user?.role === "ROLE_USER" || user?.role === "ADMIN" || user?.role === "ROLE_ADMIN")) && (
+              <div className="staff-performance-card surface-card loyalty-card">
+                  <div className="perf-item">
+                    <div className="perf-icon yellow"><Coins size={16} /></div>
+                    <div className="perf-body">
+                      <span>Điểm tích lũy</span>
+                      <strong>{points} điểm</strong>
+                    </div>
+                  </div>
+              </div>
+            )}
+
+            <div className="profile-meta-list">
+              
               <div className="profile-meta-item">
                 <Phone size={16} />
                 <span>{formData.phone || "Thêm số điện thoại để đội ngũ hỗ trợ liên hệ dễ hơn."}</span>
@@ -167,13 +213,9 @@ const Profile = () => {
             <div className="profile-main-head">
               <div>
                 <span className="tag-eyebrow">Thông tin cơ bản</span>
-                <h2>Chỉnh sửa hồ sơ</h2>
-                <p>Thay đổi ở đây sẽ được dùng cho các màn booking, lịch hẹn và khu vực tài khoản.</p>
+                
               </div>
-              <div className="profile-assurance">
-                <ShieldCheck size={18} />
-                <span>Dữ liệu được dùng để hiển thị trải nghiệm cá nhân hóa trong ứng dụng.</span>
-              </div>
+             
             </div>
 
             {error && <div className="auth-error">{error}</div>}

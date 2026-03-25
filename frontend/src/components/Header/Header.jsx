@@ -2,6 +2,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Bell,
   CalendarClock,
   ChevronDown,
   LayoutDashboard,
@@ -10,20 +11,27 @@ import {
   Search,
   UserCircle2,
   Wrench,
-  X
+  X,
+  Coins,
+  ShieldCheck,
+  LogIn,
+  UserPlus
 } from "lucide-react";
+import PhoneVerificationModal from "@/components/common/PhoneVerificationModal/PhoneVerificationModal";
+import logo from "@/assets/logo.png";
 import "./Header.css";
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:8089/api").replace(/\/api$/, "");
 
 function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, verifyLoyalty } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   const isAdmin = user?.role === "ROLE_ADMIN" || user?.role === "ADMIN";
   const isStaff = user?.role === "ROLE_STAFF" || user?.role === "STAFF";
@@ -70,7 +78,11 @@ function Header() {
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    const protectedPaths = ["/profile", "/my-bookings", "/loyalty", "/booking"];
+    const isProtected = protectedPaths.some(p => location.pathname.startsWith(p));
+    if (isProtected) {
+      navigate("/");
+    }
   };
 
   const handleSearchSubmit = (event) => {
@@ -79,57 +91,69 @@ function Header() {
     navigate(nextQuery ? `/services?q=${encodeURIComponent(nextQuery)}` : "/services");
   };
 
+  const handleLoyaltyClick = (e) => {
+    e.preventDefault();
+    setShowDropdown(false);
+    setShowPhoneModal(true);
+  };
+
+  const handlePhoneVerified = () => {
+    setShowPhoneModal(false);
+    verifyLoyalty();
+    navigate("/loyalty");
+  };
+
   const avatarText = user?.name?.charAt(0)?.toUpperCase() || "C";
   const avatarSrc = user?.avatar ? `${API_ORIGIN}${user.avatar}` : null;
 
   return (
-    <header className={`main-header ${isScrolled ? "is-scrolled" : ""}`}>
+    <>
+      <header className={`main-header ${isScrolled ? "is-scrolled" : ""}`}>
       <div className="header-shell">
         <Link to="/" className="header-brand">
           <div className="header-logo">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 13L3 15V18H21V15L19 13H5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-              <path d="M5 13L7 7H17L19 13" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-              <circle cx="8" cy="18" r="2" fill="currentColor" />
-              <circle cx="16" cy="18" r="2" fill="currentColor" />
-              <path d="M9 10H15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
+            <img src={logo} alt="CarCareHome Logo" className="header-logo-img" />
           </div>
           <div className="brand-copy">
-            <span className="brand-kicker">Chăm xe tại nhà</span>
+           
             <strong>CarCareHome</strong>
           </div>
         </Link>
 
-        <div className="header-center">
-          <nav className="header-nav">
-            {navLinks.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  isActive || (item.to === "/services" && location.pathname.startsWith("/services"))
-                    ? "nav-link active"
-                    : "nav-link"
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+        {/* Mian Navigation - Centered */}
+        <nav className="header-nav-center">
+          {navLinks.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                isActive || (item.to === "/services" && location.pathname.startsWith("/services"))
+                  ? "nav-link active"
+                  : "nav-link"
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
 
-          <form className="header-search" onSubmit={handleSearchSubmit}>
+        {/* Right Actions - Search, Notifications, Auth */}
+        <div className="header-actions">
+          <form className="header-search-compact" onSubmit={handleSearchSubmit}>
             <Search size={18} />
             <input
               type="search"
-              placeholder="Tìm dịch vụ, vệ sinh nội thất, ceramic..."
+              placeholder="Tìm kiếm..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
           </form>
-        </div>
 
-        <div className="header-actions">
+          <button className="icon-btn notification-btn" aria-label="Thông báo">
+            <Bell size={20} />
+            <span className="notification-badge"></span>
+          </button>
+
           {user ? (
             <div className="header-user-group">
               <button type="button" className="header-user-button" onClick={() => setShowDropdown((prev) => !prev)}>
@@ -156,8 +180,12 @@ function Header() {
                     </Link>
                     <Link to="/my-bookings" className="dropdown-link" onClick={() => setShowDropdown(false)}>
                       <CalendarClock size={17} />
-                      Theo dõi lịch hẹn
+                      Lịch hẹn của tôi
                     </Link>
+                    <button type="button" className="dropdown-link" onClick={handleLoyaltyClick}>
+                      <Coins size={17} className="icon-gold" />
+                      Tra cứu điểm thưởng
+                    </button>
                     {portalLink && (
                       <Link to={portalLink.to} className="dropdown-link" onClick={() => setShowDropdown(false)}>
                         <LayoutDashboard size={17} />
@@ -174,8 +202,14 @@ function Header() {
             </div>
           ) : (
             <div className="auth-actions">
-              <Link to="/login" className="auth-link subtle">Đăng nhập</Link>
-              <Link to="/register" className="auth-link primary">Tạo tài khoản</Link>
+              <Link to="/login" className="auth-link subtle">
+               
+                <span>Đăng nhập</span>
+              </Link>
+              <Link to="/register" className="auth-link primary">
+               
+                <span>Đăng ký</span>
+              </Link>
             </div>
           )}
 
@@ -223,9 +257,31 @@ function Header() {
               {portalLink.label}
             </NavLink>
           )}
+
+          {!user && (
+            <>
+              <Link to="/login" className="mobile-nav-link login-trigger" style={{ marginTop: '8px' }}>
+                <LogIn size={20} />
+                Đăng nhập
+              </Link>
+              <Link to="/register" className="mobile-nav-link register-trigger">
+                <UserPlus size={20} />
+                Tạo tài khoản
+              </Link>
+            </>
+          )}
         </nav>
       </div>
-    </header>
+
+      </header>
+
+      <PhoneVerificationModal 
+        isOpen={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)}
+        onVerify={handlePhoneVerified}
+        correctPhone={user?.phone}
+      />
+    </>
   );
 }
 

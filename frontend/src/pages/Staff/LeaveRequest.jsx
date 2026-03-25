@@ -17,12 +17,6 @@ const LeaveRequest = () => {
 
     const today = new Date().toISOString().split('T')[0];
 
-    useEffect(() => {
-        if (user?.email) {
-            fetchLeaves();
-        }
-    }, [user?.email, fetchLeaves]);
-
     const fetchLeaves = React.useCallback(async () => {
         setLoading(true);
         try {
@@ -34,6 +28,12 @@ const LeaveRequest = () => {
             setLoading(false);
         }
     }, [user?.email]);
+
+    useEffect(() => {
+        if (user?.email) {
+            fetchLeaves();
+        }
+    }, [user?.email, fetchLeaves]);
 
     const calculateDays = (start, end) => {
         if (!start || !end) return 0;
@@ -91,9 +91,9 @@ const LeaveRequest = () => {
 
     const getStatusStyle = (status) => {
         switch(status) {
-            case 'APPROVED': return { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981', label: 'Đã duyệt' };
-            case 'REJECTED': return { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', label: 'Từ chối' };
-            case 'RESTORED': return { bg: 'rgba(148, 163, 184, 0.1)', color: '#94a3b8', label: 'Đã khôi phục (Đi làm lại)' };
+            case 'APPROVED': return { bg: 'rgba(16, 185, 129, 0.1)', color: 'var(--staff-success)', label: 'Đã duyệt' };
+            case 'REJECTED': return { bg: 'rgba(239, 68, 68, 0.1)', color: 'var(--staff-danger)', label: 'Từ chối' };
+            case 'RESTORED': return { bg: 'rgba(148, 163, 184, 0.1)', color: 'var(--staff-text-muted)', label: 'Đã khôi phục (Đi làm lại)' };
             default: return { bg: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', label: 'Chờ duyệt' };
         }
     };
@@ -102,55 +102,92 @@ const LeaveRequest = () => {
         <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto', color: '#fff' }}>
             <div style={{ marginBottom: '30px' }}>
                 <h1 style={{ fontSize: '2rem', margin: '0 0 8px' }}>Xin nghỉ phép</h1>
-                <p style={{ color: 'var(--staff-text-muted)' }}>Gửi đơn xin nghỉ phép (tối đa 2 ngày) và quản lý lịch nghỉ của bạn.</p>
+               
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', alignItems: 'start' }}>
                 {/* Form xin nghỉ */}
-                <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '25px', backdropFilter: 'blur(20px)' }}>
-                    <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={18}/> Tạo đơn mới</h2>
+                <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '30px', backdropFilter: 'blur(25px)', boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}>
+                    <div style={{ marginBottom: '25px' }}>
+                        <p className="eyebrow" style={{ color: 'var(--staff-primary)', margin: '0 0 5px' }}>ĐĂNG KÝ</p>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: '900', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Calendar size={24} color="var(--staff-primary)"/> Tạo đơn mới
+                        </h2>
+                    </div>
                     
                     <form onSubmit={handleSubmit}>
-                        <div style={{ marginBottom: '15px' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Ngày bắt đầu nghỉ</label>
-                            <input 
-                                type="date" 
-                                min={today}
-                                value={startDate}
-                                onChange={e => {
-                                    setStartDate(e.target.value);
-                                    if (!endDate || e.target.value > endDate) setEndDate(e.target.value);
-                                }}
-                                style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
-                            />
+                        <div style={{ display: 'grid', gap: '20px', marginBottom: '25px' }}>
+                            <div style={{ position: 'relative' }}>
+                                <label style={{ display: 'block', marginBottom: '10px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--staff-text-muted)', letterSpacing: '0.5px' }}>NGÀY BẮT ĐẦU</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input 
+                                        type="date" 
+                                        min={today}
+                                        value={startDate}
+                                        onKeyDown={(e) => e.preventDefault()}
+                                        onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                                        onChange={e => {
+                                            setStartDate(e.target.value);
+                                            if (!endDate || e.target.value > endDate) setEndDate(e.target.value);
+                                        }}
+                                        style={{ 
+                                            width: '100%', padding: '15px 20px', paddingLeft: '50px', 
+                                            borderRadius: '16px', background: 'rgba(255,255,255,0.03)', 
+                                            border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
+                                            fontSize: '1rem', cursor: 'pointer', transition: '0.3s'
+                                        }}
+                                        className="date-input-custom"
+                                    />
+                                    <Calendar size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: 'var(--staff-primary)', opacity: 0.8 }} />
+                                </div>
+                            </div>
+
+                            <div style={{ position: 'relative' }}>
+                                <label style={{ display: 'block', marginBottom: '10px', fontSize: '0.85rem', fontWeight: '700', color: 'var(--staff-text-muted)', letterSpacing: '0.5px' }}>NGÀY KẾT THÚC</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input 
+                                        type="date" 
+                                        min={startDate || today}
+                                        value={endDate}
+                                        onKeyDown={(e) => e.preventDefault()}
+                                        onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                                        onChange={e => setEndDate(e.target.value)}
+                                        style={{ 
+                                            width: '100%', padding: '15px 20px', paddingLeft: '50px', 
+                                            borderRadius: '16px', background: 'rgba(255,255,255,0.03)', 
+                                            border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
+                                            fontSize: '1rem', cursor: 'pointer', transition: '0.3s'
+                                        }}
+                                        className="date-input-custom"
+                                    />
+                                    <Calendar size={18} style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', color: 'var(--staff-accent)', opacity: 0.8 }} />
+                                </div>
+                            </div>
                         </div>
 
-                        <div style={{ marginBottom: '15px' }}>
-                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Ngày kết thúc</label>
-                            <input 
-                                type="date" 
-                                min={startDate || today}
-                                value={endDate}
-                                onChange={e => setEndDate(e.target.value)}
-                                style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
-                            />
-                        </div>
-
-                        <div style={{ marginBottom: '20px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: '#94a3b8' }}>Lý do (Bắt buộc)</label>
+                        <div style={{ marginBottom: '30px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                <label style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--staff-text-muted)', letterSpacing: '0.5px' }}>LÝ DO NGHỈ</label>
                                 {startDate && endDate && (
-                                    <span style={{ fontSize: '0.85rem', color: calculateDays(startDate, endDate) > 2 ? '#ef4444' : '#38bdf8' }}>
-                                        {calculateDays(startDate, endDate)} ngày
+                                    <span style={{ 
+                                        fontSize: '0.75rem', fontWeight: '900', padding: '4px 12px', borderRadius: '10px',
+                                        background: calculateDays(startDate, endDate) > 2 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                                        color: calculateDays(startDate, endDate) > 2 ? 'var(--staff-danger)' : 'var(--staff-primary)'
+                                    }}>
+                                        {calculateDays(startDate, endDate)} NGÀY
                                     </span>
                                 )}
                             </div>
                             <textarea 
-                                rows="3"
-                                placeholder="Nhập lý do nghỉ phép..."
+                                rows="4"
+                                placeholder="Vui lòng nhập lý do nghỉ phép của bạn..."
                                 value={reason}
                                 onChange={e => setReason(e.target.value)}
-                                style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', resize: 'vertical' }}
+                                style={{ 
+                                    width: '100%', padding: '15px 20px', borderRadius: '16px', 
+                                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', 
+                                    color: '#fff', resize: 'none', fontSize: '1rem', lineHeight: 1.6
+                                }}
                             />
                         </div>
 
@@ -158,13 +195,17 @@ const LeaveRequest = () => {
                             type="submit" 
                             disabled={submitting}
                             style={{ 
-                                width: '100%', padding: '14px', borderRadius: '12px', 
-                                background: 'linear-gradient(to right, #38bdf8, #0ea5e9)', 
-                                color: '#0f172a', fontWeight: 'bold', border: 'none', 
-                                cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1
+                                width: '100%', padding: '18px', borderRadius: '18px', 
+                                background: 'linear-gradient(135deg, var(--staff-primary), var(--staff-primary-dark))', 
+                                color: '#fff', fontWeight: '900', border: 'none', fontSize: '1.1rem',
+                                cursor: submitting ? 'not-allowed' : 'pointer', 
+                                boxShadow: '0 10px 25px var(--staff-primary-glow)',
+                                transition: '0.3s'
                             }}
+                            onMouseEnter={e => !submitting && (e.currentTarget.style.transform = 'translateY(-3px)')}
+                            onMouseLeave={e => !submitting && (e.currentTarget.style.transform = 'translateY(0)')}
                         >
-                            {submitting ? 'ĐANG GỬI...' : 'GỬI ĐƠN'}
+                            {submitting ? 'ĐANG XỬ LÝ...' : 'GỬI ĐƠN NGHỈ PHÉP'}
                         </button>
                     </form>
                 </div>
@@ -199,7 +240,7 @@ const LeaveRequest = () => {
                                             {req.status === 'APPROVED' && (
                                                 <button 
                                                     onClick={() => handleRestore(req.id)}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', background: 'rgba(14, 165, 233, 0.1)', border: '1px solid rgba(14, 165, 233, 0.3)', color: '#38bdf8', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', color: 'var(--staff-primary)', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}
                                                 >
                                                     <RotateCcw size={16} /> Khôi phục việc
                                                 </button>

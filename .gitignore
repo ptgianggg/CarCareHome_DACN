@@ -1,1 +1,10 @@
 Rule.md
+node_modules
+.env
+.vscode
+.idea
+.DS_Store       
+.gitignore
+.gitignore
+.gitignore
+

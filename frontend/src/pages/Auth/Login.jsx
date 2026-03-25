@@ -52,7 +52,15 @@ function Login() {
           email: data.email,
           role: data.role
         }, data.token);
-        navigate("/");
+
+        // Role-based redirection
+        if (data.role === "ADMIN" || data.role === "ROLE_ADMIN") {
+          navigate("/admin/booking");
+        } else if (data.role === "STAFF" || data.role === "ROLE_STAFF") {
+          navigate("/staff/tasks");
+        } else {
+          navigate("/");
+        }
       } else {
         setError(data.message || "Email hoặc mật khẩu không đúng.");
       }
@@ -75,7 +83,15 @@ function Login() {
           email: data.email,
           role: data.role
         }, data.token);
-        navigate("/");
+
+        // Role-based redirection
+        if (data.role === "ADMIN" || data.role === "ROLE_ADMIN") {
+          navigate("/admin/booking");
+        } else if (data.role === "STAFF" || data.role === "ROLE_STAFF") {
+          navigate("/staff/tasks");
+        } else {
+          navigate("/");
+        }
       } else {
         setError(data.message || "Đăng nhập Google thất bại.");
       }

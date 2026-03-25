@@ -18,7 +18,6 @@ import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "http://localhost:5173")
 public class UserController {
 
     @Autowired
@@ -30,6 +29,28 @@ public class UserController {
     @Autowired
     private com.carcarehome.backend.repository.LeaveRequestRepository leaveRequestRepository;
 
+    @Autowired
+    private com.carcarehome.backend.repository.BookingRepository bookingRepository;
+
+    @GetMapping("/profile/performance")
+    public ResponseEntity<?> getPersonalPerformance() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userService.findByEmail(email)
+                .map(user -> {
+                    Object[] performance = bookingRepository.getStaffPerformanceById(user.getId());
+                    Map<String, Object> res = new HashMap<>();
+                    if (performance != null && performance.length > 0) {
+                        res.put("averageRating", performance[0]);
+                        res.put("totalJobs", performance[1]);
+                    } else {
+                        res.put("averageRating", 0.0);
+                        res.put("totalJobs", 0);
+                    }
+                    return ResponseEntity.ok(res);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping
     public ResponseEntity<?> getAllUsers() {
         java.util.List<Map<String, Object>> users = userRepository.findAll().stream().map(u -> {
@@ -37,6 +58,11 @@ public class UserController {
             map.put("id", u.getId());
             map.put("name", u.getName());
             map.put("email", u.getEmail());
+            map.put("phone", u.getPhone());
+            map.put("avatar", u.getAvatar());
+            map.put("points", u.getPoints() != null ? u.getPoints() : 0);
+            map.put("pointsLifetime", u.getPointsLifetime() != null ? u.getPointsLifetime() : 0);
+            map.put("tier", u.getTier());
             map.put("role", Map.of("name", u.getRole() != null ? u.getRole().getName() : "UNKNOWN"));
             return map;
         }).collect(java.util.stream.Collectors.toList());
@@ -54,6 +80,8 @@ public class UserController {
                 map.put("id", u.getId());
                 map.put("name", u.getName());
                 map.put("email", u.getEmail());
+                map.put("phone", u.getPhone());
+                map.put("avatar", u.getAvatar());
                 map.put("role", Map.of("name", u.getRole().getName()));
                 return map;
             }).collect(java.util.stream.Collectors.toList());
@@ -71,6 +99,9 @@ public class UserController {
                     response.put("email", user.getEmail());
                     response.put("phone", user.getPhone());
                     response.put("avatar", user.getAvatar());
+                    response.put("points", user.getPoints() != null ? user.getPoints() : 0);
+                    response.put("pointsLifetime", user.getPointsLifetime() != null ? user.getPointsLifetime() : 0);
+                    response.put("tier", user.getTier());
                     response.put("role", user.getRole().getName());
                     return ResponseEntity.ok(response);
                 })
@@ -88,6 +119,9 @@ public class UserController {
             response.put("email", updatedUser.getEmail());
             response.put("phone", updatedUser.getPhone());
             response.put("avatar", updatedUser.getAvatar());
+            response.put("points", updatedUser.getPoints() != null ? updatedUser.getPoints() : 0);
+            response.put("pointsLifetime", updatedUser.getPointsLifetime() != null ? updatedUser.getPointsLifetime() : 0);
+            response.put("tier", updatedUser.getTier());
             response.put("role", updatedUser.getRole().getName());
             response.put("message", "Cập nhật hồ sơ thành công!");
             return ResponseEntity.ok(response);

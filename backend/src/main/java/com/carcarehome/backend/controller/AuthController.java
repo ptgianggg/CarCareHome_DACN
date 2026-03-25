@@ -8,6 +8,8 @@ import com.carcarehome.backend.dto.LoginRequest;
 import com.carcarehome.backend.dto.RegisterRequest;
 import com.carcarehome.backend.dto.ForgotPasswordRequest;
 import com.carcarehome.backend.dto.ResetPasswordRequest;
+import com.carcarehome.backend.service.EmailService;
+import com.carcarehome.backend.service.OTPService;
 import jakarta.validation.Valid;
 
 import java.util.Map;
@@ -64,6 +66,38 @@ public class AuthController {
             return ResponseEntity.ok(authService.resetPassword(request.getToken(), request.getNewPassword()));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private OTPService otpService;
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<?> sendOTP(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email không hợp lệ"));
+        }
+        String otp = otpService.generateOTP(email);
+        try {
+            emailService.sendOTPEmail(email, otp);
+            return ResponseEntity.ok(Map.of("message", "Đã gửi mã OTP đến " + email));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Lỗi gửi OTP: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOTP(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String otp = body.get("otp");
+        if (otpService.verifyOTP(email, otp)) {
+            return ResponseEntity.ok(Map.of("success", true, "message", "Xác thực OTP thành công"));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Mã OTP không chính xác hoặc đã hết hạn"));
         }
     }
 }

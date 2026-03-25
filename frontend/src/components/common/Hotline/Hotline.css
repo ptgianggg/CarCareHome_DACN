@@ -1,0 +1,131 @@
+.hotline-phone-ring-wrap {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.hotline-phone-ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Outer Pulsing Circle */
+.hotline-phone-ring-circle {
+  width: 100px;
+  height: 100px;
+  top: -10px;
+  left: -10px;
+  position: absolute;
+  background-color: transparent;
+  border-radius: 100%;
+  border: 2px solid #e62e2d;
+  opacity: 0.1;
+  animation: hotline-circle-anim 1.2s infinite ease-in-out;
+  transition: all 0.5s;
+  transform-origin: 50% 50%;
+}
+
+/* Inner Pulsing Circle Fill */
+.hotline-phone-ring-circle-fill {
+  width: 70px;
+  height: 70px;
+  top: 5px;
+  left: 5px;
+  position: absolute;
+  background-color: rgba(230, 46, 45, 0.4);
+  border-radius: 100%;
+  border: 2px solid transparent;
+  animation: hotline-circle-fill-anim 2.3s infinite ease-in-out;
+  transition: all 0.5s;
+  transform-origin: 50% 50%;
+}
+
+/* Icon Container */
+.hotline-phone-ring-img-circle {
+  background-color: #e62e2d;
+  width: 50px;
+  height: 50px;
+  border-radius: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: hotline-img-circle-anim 1s infinite ease-in-out;
+  box-shadow: 0 0 15px rgba(230, 46, 45, 0.6);
+  z-index: 2;
+}
+
+.hotline-phone-ring-img-circle img {
+  width: 26px;
+  height: 26px;
+  filter: brightness(0) invert(1); /* Thường icon màu đen, chuyển sang trắng */
+}
+
+/* Bar showing phone number */
+.hotline-bar {
+  background: #e62e2d;
+  height: 44px;
+  width: auto;
+  min-width: 180px;
+  border-radius: 22px;
+  margin-left: -40px; /* Thụt vào bên trong vòng tròn icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 50px;
+  padding-right: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+  z-index: 1;
+}
+
+.hotline-bar a {
+  text-decoration: none;
+  font-weight: 800;
+  color: white;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+/* Hover effects */
+.hotline-phone-ring-wrap:hover .hotline-bar {
+  background: #d81b60;
+  width: 200px;
+}
+
+/* Keyframes animations */
+@keyframes hotline-circle-anim {
+  0% { transform: rotate(0) scale(0.5) skew(1deg); opacity: 0.1; }
+  30% { transform: rotate(0) scale(0.7) skew(1deg); opacity: 0.5; }
+  100% { transform: rotate(0) scale(1) skew(1deg); opacity: 0.1; }
+}
+
+@keyframes hotline-circle-fill-anim {
+  0% { transform: rotate(0) scale(0.7) skew(1deg); opacity: 0.2; }
+  50% { transform: rotate(0) scale(1) skew(1deg); opacity: 0.2; }
+  100% { transform: rotate(0) scale(0.7) skew(1deg); opacity: 0.2; }
+}
+
+@keyframes hotline-img-circle-anim {
+  0% { transform: rotate(0) scale(1) skew(1deg); }
+  10% { transform: rotate(-25deg) scale(1) skew(1deg); }
+  20% { transform: rotate(25deg) scale(1) skew(1deg); }
+  30% { transform: rotate(-25deg) scale(1) skew(1deg); }
+  40% { transform: rotate(25deg) scale(1) skew(1deg); }
+  50% { transform: rotate(0) scale(1) skew(1deg); }
+  100% { transform: rotate(0) scale(1) skew(1deg); }
+}
+
+@media (max-width: 768px) {
+  .hotline-bar {
+    display: none; /* Mobile ẩn thanh số, chỉ hiện vòng tròn rung */
+  }
+}

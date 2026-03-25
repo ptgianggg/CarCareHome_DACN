@@ -18,9 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.carcarehome.backend.dto.BookingRequest;
 import com.carcarehome.backend.entity.Booking;
 import com.carcarehome.backend.service.BookingService;
+import jakarta.validation.Valid;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 @RestController
-@RequestMapping({"/api/bookings", "/api/booking"})
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/bookings")
+@CrossOrigin(origins = "http://localhost:5173")
 public class BookingController {
     @Autowired
     private BookingService bookingService;
@@ -31,41 +34,39 @@ public class BookingController {
     }
 
     @GetMapping("/user")
-    public List<Booking> getBookingsByUser(
-            @RequestParam(value = "email", required = false) String email,
-            @RequestHeader(value = "X-User-Email", required = false) String headerEmail) {
-        String customerEmail = (email != null && !email.isBlank()) ? email : headerEmail;
+    public List<Booking> getBookingsByUser() {
+        String customerEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return bookingService.getBookingsByCustomerEmail(customerEmail);
     }
 
     @GetMapping("/{id}")
-    public Booking getBookingById(@PathVariable Long id) {
+    public Booking getBookingById(@PathVariable("id") Long id) {
         return bookingService.getBookingById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Booking createBooking(@RequestBody BookingRequest request) {
+    public Booking createBooking(@Valid @RequestBody BookingRequest request) {
         return bookingService.createBooking(request);
     }
-@PutMapping("/{id}")
-    public Booking updateBooking(@PathVariable Long id, @RequestBody BookingRequest request) {
+    @PutMapping("/{id}")
+    public Booking updateBooking(@PathVariable("id") Long id, @Valid @RequestBody BookingRequest request) {
         return bookingService.updateBooking(id, request);
     }
 
     @GetMapping("/staff")
-    public List<Booking> getStaffBookings(@RequestParam String email) {
+    public List<Booking> getStaffBookings(@RequestParam("email") String email) {
         return bookingService.getBookingsByStaff(email);
     }
 
     @PutMapping("/{id}/assign")
-    public Booking assignStaff(@PathVariable Long id, @RequestParam Long staffId) {
-        return bookingService.assignStaff(id, staffId);
+    public Booking assignStaff(@PathVariable("id") Long id, @RequestParam("staffId") List<Long> staffIds) {
+        return bookingService.assignStaff(id, staffIds);
     }
 
     @PutMapping("/{id}/status")
     public Booking updateStaffStatus(
-            @PathVariable Long id, 
+            @PathVariable("id") Long id, 
             @RequestBody java.util.Map<String, String> payload) {
         String status = payload.get("status");
         String proofImage = payload.get("proofImage");
@@ -74,15 +75,20 @@ public class BookingController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteBooking(@PathVariable Long id) {
+    public void deleteBooking(@PathVariable("id") Long id) {
         bookingService.deleteBooking(id);
     }
 
     @PutMapping("/{id}/review")
     public Booking addReview(
-            @PathVariable Long id,
-            @RequestParam Integer rating,
-            @RequestParam(required = false) String comment) {
+            @PathVariable("id") Long id,
+            @RequestParam("rating") Integer rating,
+            @RequestParam(value = "comment", required = false) String comment) {
         return bookingService.addReview(id, rating, comment);
+    }
+
+    @GetMapping("/reviews")
+    public List<Booking> getReviews() {
+        return bookingService.getAllReviews();
     }
 }
