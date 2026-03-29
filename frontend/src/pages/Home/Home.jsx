@@ -12,6 +12,7 @@ import {
   MapPinHouse
 } from "lucide-react";
 import defaultBannerImg from "@/assets/banner.png";
+import AiServiceChatbox from "@/components/AiServiceChatbox/AiServiceChatbox";
 import { useSystem } from "@/context/SystemContext";
 import { getCategories, getServices, getFeaturedCategories, getReviews } from "@/services/api";
 import "./Home.css";
@@ -152,6 +153,10 @@ function Home() {
 
 
         </div>
+      </section>
+
+      <section className="page-shell home-section-grid">
+        <AiServiceChatbox />
       </section>
 
       <section className="page-shell home-section-grid">

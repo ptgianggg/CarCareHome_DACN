@@ -161,6 +161,43 @@ export const uploadAvatar = async (file) => {
   return res.json();
 };
 
+export const requestAiServiceAdvisor = async ({ description, imageFile }) => {
+  const formData = new FormData();
+  formData.append("description", description);
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+
+  const res = await fetch(`${API_URL}/ai/service-advisor`, {
+    method: "POST",
+    headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
+    body: formData
+  });
+
+  let data = {};
+  try {
+    data = await res.json();
+  } catch {
+    data = { message: res.statusText };
+  }
+
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      return {
+        error: true,
+        message: "Vui lòng đăng nhập để dùng AI Chat."
+      };
+    }
+
+    return {
+      error: true,
+      message: data.message || "Không thể gửi yêu cầu tư vấn lúc này."
+    };
+  }
+
+  return data;
+};
+
 // ============================================================
 // BOOKING & SERVICES APIs
 // ============================================================
