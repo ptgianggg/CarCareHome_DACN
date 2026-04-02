@@ -177,7 +177,7 @@ const BookingDetailModal = ({ detailBooking, staffList, busyStaffIds = new Set()
 
              <section>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: 'rgba(255,255,255,0.3)', margin: 0, letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}><Briefcase size={14}/> PHÂN CÔNG CHUÊN VIÊN</h4>
+                  <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: 'rgba(255,255,255,0.3)', margin: 0, letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}><Briefcase size={14}/> PHÂN CÔNG KTV</h4>
                 </div>
                 
                 <div style={{ display: 'flex', gap: '12px' }}>
@@ -246,13 +246,13 @@ const BookingDetailModal = ({ detailBooking, staffList, busyStaffIds = new Set()
                   </div>
                   <button 
                     onClick={handleAssignStaff}
-                    disabled={selectedStaffIds.length === 0 || isLocked || isAssigning}
+                    disabled={isLocked || isAssigning}
                     style={{ 
                       height: '56px', padding: '0 30px', 
-                      background: isLocked || selectedStaffIds.length === 0 || isAssigning ? 'rgba(255,255,255,0.05)' : '#3b82f6', 
-                      color: isLocked || selectedStaffIds.length === 0 || isAssigning ? 'rgba(255,255,255,0.2)' : '#fff', 
-                      borderRadius: '18px', cursor: isLocked || selectedStaffIds.length === 0 || isAssigning ? 'not-allowed' : 'pointer', fontWeight: '900', border: 'none',
-                      transition: '0.3s', boxShadow: isLocked || selectedStaffIds.length === 0 || isAssigning ? 'none' : '0 10px 20px rgba(59, 130, 246, 0.2)'
+                      background: isLocked || isAssigning ? 'rgba(255,255,255,0.05)' : '#3b82f6', 
+                      color: isLocked || isAssigning ? 'rgba(255,255,255,0.2)' : '#fff', 
+                      borderRadius: '18px', cursor: isLocked || isAssigning ? 'not-allowed' : 'pointer', fontWeight: '900', border: 'none',
+                      transition: '0.3s', boxShadow: isLocked || isAssigning ? 'none' : '0 10px 20px rgba(59, 130, 246, 0.2)'
                     }}
                   >
                     {isAssigning ? "ĐANG LƯU..." : "XÁC NHẬN"}

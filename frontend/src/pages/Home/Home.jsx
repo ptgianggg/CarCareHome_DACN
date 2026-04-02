@@ -158,9 +158,7 @@ function Home() {
         <div className="home-section-heading centered">
           <span className="hero-badge">Ưu điểm vượt trội</span>
           <h2 className="section-heading">Tối ưu hóa hành trình chăm sóc xe</h2>
-          <p>
-            Hệ thống thông minh giúp bạn tiết kiệm thời gian và trải nghiệm dịch vụ chuyên nghiệp nhất.
-          </p>
+         
         </div>
 
         <div className="home-highlight-grid">
@@ -282,7 +280,6 @@ function Home() {
         <div className="home-section-heading centered">
           <span className="hero-badge">Trải nghiệm thực tế</span>
           <h2 className="section-heading">Khách hàng nói gì về chúng tôi</h2>
-          <p>Sự hài lòng của khách hàng là động lực lớn nhất để CarCareHome không ngừng hoàn thiện.</p>
         </div>
 
         <div className="home-reviews-grid">

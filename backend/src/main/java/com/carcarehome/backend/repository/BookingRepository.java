@@ -12,6 +12,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(String customerEmail);
     List<Booking> findByAssignedStaffsEmailOrderByCreatedAtDesc(String email);
     List<Booking> findByAssignedStaffsIdOrderByCreatedAtDesc(Long staffId);
+    long countByCustomerEmailIgnoreCaseAndStatus(String customerEmail, String status);
     List<com.carcarehome.backend.entity.Booking> findByStatusAndCreatedAtBefore(String status, java.time.LocalDateTime time);
     List<Booking> findByRatingIsNotNullOrderByUpdatedAtDesc();
     List<Booking> findByShowOnHomeTrueOrderByUpdatedAtDesc();

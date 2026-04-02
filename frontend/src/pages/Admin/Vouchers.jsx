@@ -33,7 +33,8 @@ const TIER_OPTIONS = ["ALL", "BRONZE", "SILVER", "GOLD", "VIP"];
 const TYPE_OPTIONS = [
   { value: "CASH", label: "Tiền mặt (VNĐ)" },
   { value: "PERCENT", label: "Phần trăm (%)" },
-  { value: "SERVICE", label: "Miễn phí dịch vụ" }
+  { value: "SERVICE", label: "Miễn phí dịch vụ" },
+  { value: "FREE_WASH", label: "Tặng 1 lần Rửa xe" }
 ];
 
 const emptyForm = {
@@ -47,7 +48,8 @@ const emptyForm = {
     targetTier: "ALL",
     status: "ACTIVE",
     startDate: "",
-    endDate: ""
+    endDate: "",
+    requiredBookingCount: 0
 };
 
 const CustomDropdown = ({ value, options, onChange, placeholder }) => {
@@ -209,6 +211,7 @@ function VoucherManagement() {
             finalForm.pointsRequired = Number(finalForm.pointsRequired) || 0;
             finalForm.discountValue = Number(finalForm.discountValue) || 0;
             finalForm.minOrderValue = Number(finalForm.minOrderValue) || 0;
+            finalForm.requiredBookingCount = Number(finalForm.requiredBookingCount) || 0;
 
             // Chuẩn hóa định dạng ngày để khớp với LocalDateTime của Backend (ISO-8601)
             if (finalForm.startDate && !finalForm.startDate.includes('T')) {
@@ -580,6 +583,20 @@ function VoucherManagement() {
                                   <Clock size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
                                   <input type="date" className="premium-field" style={{ paddingLeft: '45px' }} value={form.endDate ? form.endDate.split('T')[0] : ""} onChange={e => setForm({...form, endDate: e.target.value})} />
                                 </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+                              <div className="input-group">
+                                <label className="premium-label">ĐƠN HÀNG THÀNH CÔNG TỐI THIỂU</label>
+                                <div style={{ position: 'relative' }}>
+                                  <CheckCircle size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+                                  <input type="number" className="premium-field" style={{ paddingLeft: '45px' }} value={form.requiredBookingCount} onChange={e => setForm({...form, requiredBookingCount: e.target.value})} placeholder="VD: 2" />
+                                </div>
+                              </div>
+                              <div className="input-group">
+                                <label className="premium-label">GIÁ TRỊ ĐƠN HÀNG TỐI THIỂU</label>
+                                <input type="number" className="premium-field" value={form.minOrderValue} onChange={e => setForm({...form, minOrderValue: e.target.value})} placeholder="VD: 500000" />
                               </div>
                             </div>
 

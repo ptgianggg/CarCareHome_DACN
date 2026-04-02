@@ -10,6 +10,7 @@ class PendingState implements BookingState {
     @Override
     public void cancel(Booking booking) {
         booking.setStatus("CANCEL");
+        booking.getAssignedStaffs().clear();
     }
     @Override
     public String getStatusName() { return "PENDING"; }
@@ -23,6 +24,7 @@ class SuccessState implements BookingState {
     @Override
     public void cancel(Booking booking) {
         booking.setStatus("CANCEL");
+        booking.getAssignedStaffs().clear();
     }
     @Override
     public void reject(Booking booking) {
@@ -48,6 +50,7 @@ class InProgressState implements BookingState {
     @Override
     public void cancel(Booking booking) {
         booking.setStatus("CANCEL");
+        booking.getAssignedStaffs().clear();
     }
     @Override
     public String getStatusName() { return "IN_PROGRESS"; }
@@ -66,6 +69,7 @@ class AwaitingFinalPaymentState implements BookingState {
     @Override
     public void cancel(Booking booking) {
         booking.setStatus("CANCEL");
+        booking.getAssignedStaffs().clear();
     }
     @Override
     public String getStatusName() { return "AWAITING_FINAL_PAYMENT"; }
@@ -85,6 +89,7 @@ class StaffRejectState implements BookingState {
     @Override
     public void cancel(Booking booking) {
         booking.setStatus("CANCEL");
+        booking.getAssignedStaffs().clear();
     }
     @Override
     public String getStatusName() { return "STAFF_REJECT"; }

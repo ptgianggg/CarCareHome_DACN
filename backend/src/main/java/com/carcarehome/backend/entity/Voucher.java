@@ -38,6 +38,9 @@ public class Voucher {
     @Column(nullable = false)
     private String status = "ACTIVE"; // ACTIVE, PAUSED
 
+    @Column(name = "required_booking_count")
+    private Integer requiredBookingCount = 0;
+
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 

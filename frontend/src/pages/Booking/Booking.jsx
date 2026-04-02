@@ -602,12 +602,18 @@ const Booking = () => {
       };
     });
 
+    // Prepare root fields from the first vehicle (for compatibility/simple views)
+    const primaryVehicle = items[0] || {};
+
     const payload = {
       customerName: form.customerName.trim(),
       customerPhone: form.customerPhone.trim(),
-      customerEmail: form.customerEmail.trim() || null,
+      customerEmail: form.customerEmail.trim() || "", // Send as empty string rather than null to be safe
       bookingDate: form.bookingDate,
       bookingTime: form.bookingTime,
+      vehicleType: primaryVehicle.vehicleType || "",
+      vehiclePlate: primaryVehicle.vehiclePlate || "",
+      serviceType: primaryVehicle.serviceType || "",
       bookingEndTime: (() => {
         const [h, m] = form.bookingTime.split(":").map(Number);
         const date = new Date();
@@ -615,13 +621,13 @@ const Booking = () => {
         // Nếu không có duration, default 45 phút
         const duration = totalDuration > 0 ? totalDuration : 45;
         const endDate = new Date(date.getTime() + duration * 60000);
-        return `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+        return `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}:00`;
       })(),
       addressName: form.addressName.trim(),
-      note: form.note.trim() || null,
+      note: form.note.trim() || "",
       status: "PENDING",
       totalPrice: totalPrice,
-      depositAmount: form.paymentMethod === "MOMO" ? totalPrice : (totalPrice > 500000 ? totalPrice * 0.1 : 0),
+      depositAmount: (user?.tier === "GOLD" || user?.tier === "VIP") ? 0 : (form.paymentMethod === "MOMO" ? totalPrice : (totalPrice > 500000 ? totalPrice * 0.1 : 0)),
       distance: Number(form.distance),
       travelFee: travelFee,
       items: items,
@@ -998,16 +1004,30 @@ const Booking = () => {
 
                     {form.paymentMethod === "CASH" && totalPrice > 500000 && (
                       <div className="deposit-notice animate-fade-in">
-                        <p>
-                          <strong>Lưu ý:</strong> Đơn hàng trên 500,000đ. Quý khách vui lòng đặt cọc 
-                          <span className="highlight"> 10% ({(totalPrice * 0.1).toLocaleString()}đ)</span> qua MoMo để xác nhận lịch hẹn.
-                        </p>
+                        {(user?.tier === "GOLD" || user?.tier === "VIP") ? (
+                          <p>
+                            <Sparkles size={16} color="#fbbf24" style={{marginRight: 6}} />
+                            <strong>Đặc quyền {user.tier}:</strong> Quý khách được miễn phí đặt cọc. Lịch hẹn sẽ được xác nhận tự động.
+                          </p>
+                        ) : (
+                          <p>
+                            <strong>Lưu ý:</strong> Đơn hàng trên 500,000đ. Quý khách vui lòng đặt cọc 
+                            <span className="highlight"> 10% ({(totalPrice * 0.1).toLocaleString()}đ)</span> qua MoMo để xác nhận lịch hẹn.
+                          </p>
+                        )}
                       </div>
                     )}
 
                     {form.paymentMethod === "MOMO" && (
                       <div className="deposit-notice full-pay animate-fade-in">
-                        <p>Quý khách đã chọn thanh toán 100% qua MoMo: <span className="highlight"> {totalPrice.toLocaleString()} VNĐ</span></p>
+                         {(user?.tier === "GOLD" || user?.tier === "VIP") ? (
+                          <p>
+                            <Sparkles size={16} color="#fbbf24" style={{marginRight: 6}} />
+                            <strong>Đặc quyền {user.tier}:</strong> Được phép thanh toán sau dịch vụ (0đ trước). Tuy nhiên bạn vẫn có thể chọn MoMo để thanh toán trước {totalPrice.toLocaleString()} VNĐ nếu muốn.
+                          </p>
+                         ) : (
+                          <p>Quý khách đã chọn thanh toán 100% qua MoMo: <span className="highlight"> {totalPrice.toLocaleString()} VNĐ</span></p>
+                         )}
                       </div>
                     )}
                   </div>
@@ -1142,29 +1162,39 @@ const Booking = () => {
                 <span>Tổng cộng:</span>
                 <strong>{totalPrice.toLocaleString()}VNĐ</strong>
               </div>
-              {form.paymentMethod === "CASH" && totalPrice > 500000 && (
+
+              {(user?.tier === "GOLD" || user?.tier === "VIP") ? (
+                <div className="calc-row result" style={{ color: '#fbbf24', borderTop: '1px solid rgba(251, 191, 36, 0.2)', paddingTop: '10px' }}>
+                  <span style={{ fontSize: '0.85rem' }}>Đặc quyền {user.tier}:</span>
+                  <strong style={{ fontSize: '0.9rem' }}>MIỄN CỌC 100%</strong>
+                </div>
+              ) : (
                 <>
-                  <div className="calc-row">
-                    <span>Tiền cọc (10%):</span>
-                    <span className="accent">{(totalPrice * 0.1).toLocaleString()}VNĐ</span>
-                  </div>
-                  <div className="calc-row result">
-                    <span>Thu hộ tại chỗ:</span>
-                    <strong>{(totalPrice - (totalPrice * 0.1)).toLocaleString()}VNĐ</strong>
-                  </div>
+                  {form.paymentMethod === "CASH" && totalPrice > 500000 && (
+                    <>
+                      <div className="calc-row">
+                        <span>Tiền cọc (10%):</span>
+                        <span className="accent">{(totalPrice * 0.1).toLocaleString()}VNĐ</span>
+                      </div>
+                      <div className="calc-row result">
+                        <span>Thu hộ tại chỗ:</span>
+                        <strong>{(totalPrice - (totalPrice * 0.1)).toLocaleString()}VNĐ</strong>
+                      </div>
+                    </>
+                  )}
+                  {form.paymentMethod === "MOMO" && (
+                    <div className="calc-row result">
+                      <span>Thanh toán MoMo:</span>
+                      <strong>{totalPrice.toLocaleString()}VNĐ</strong>
+                    </div>
+                  )}
+                  {form.paymentMethod === "CASH" && totalPrice <= 500000 && (
+                    <div className="calc-row result">
+                      <span>Thanh toán tiền mặt:</span>
+                      <strong>{totalPrice.toLocaleString()}VNĐ</strong>
+                    </div>
+                  )}
                 </>
-              )}
-              {form.paymentMethod === "MOMO" && (
-                <div className="calc-row result">
-                  <span>Thanh toán MoMo:</span>
-                  <strong>{totalPrice.toLocaleString()}VNĐ</strong>
-                </div>
-              )}
-              {form.paymentMethod === "CASH" && totalPrice <= 500000 && (
-                <div className="calc-row result">
-                  <span>Thanh toán tiền mặt:</span>
-                  <strong>{totalPrice.toLocaleString()}VNĐ</strong>
-                </div>
               )}
             </div>
           </aside>

@@ -65,6 +65,7 @@ public class VoucherService {
         voucher.setStatus(request.getStatus());
         voucher.setStartDate(request.getStartDate());
         voucher.setEndDate(request.getEndDate());
+        voucher.setRequiredBookingCount(request.getRequiredBookingCount());
         
         return voucherRepository.save(voucher);
     }

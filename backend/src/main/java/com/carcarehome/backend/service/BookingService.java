@@ -114,9 +114,21 @@ public class BookingService {
 
             Voucher v = uv.getVoucher();
             
+            // Kiểm tra số lượng đơn hàng tối thiểu (Mới thêm)
+            if (v.getRequiredBookingCount() != null && v.getRequiredBookingCount() > 0) {
+                if (request.getCustomerEmail() == null || request.getCustomerEmail().isBlank()) {
+                    throw new RuntimeException("Bạn cần đăng nhập để sử dụng khuyến mãi cho khách hàng thân thiết");
+                }
+                long completedCount = bookingRepository.countByCustomerEmailIgnoreCaseAndStatus(request.getCustomerEmail().trim(), "COMPLETED");
+                if (completedCount < v.getRequiredBookingCount()) {
+                    throw new RuntimeException("Bạn cần hoàn tất ít nhất " + v.getRequiredBookingCount() + " đơn hàng để sử dụng mã này. (Đã hoàn tất: " + completedCount + ")");
+                }
+            }
+
             // Kiểm tra giá trị đơn hàng tối thiểu
             BigDecimal baseTotal = calculatedServicesTotal.add(travelFee);
-            if (v.getMinOrderValue() != null && baseTotal.compareTo(BigDecimal.valueOf(v.getMinOrderValue())) < 0) {
+            if (v.getMinOrderValue() != null && baseTotal.compareTo(BigDecimal.valueOf(v.getMinOrderValue())) < 0 
+                && !"FREE_WASH".equalsIgnoreCase(v.getDiscountType())) {
                 throw new RuntimeException("Đơn hàng chưa đạt giá trị tối thiểu " + v.getMinOrderValue() + "đ để áp dụng mã này");
             }
 
@@ -129,6 +141,30 @@ public class BookingService {
             } else if ("SERVICE".equalsIgnoreCase(v.getDiscountType())) {
                 // Giảm 100% phí dịch vụ
                 discount = calculatedServicesTotal;
+            } else if ("FREE_WASH".equalsIgnoreCase(v.getDiscountType())) {
+                // Tặng kèm 1 dịch vụ rửa xe rẻ nhất
+                com.carcarehome.backend.entity.Service cheapestWash = serviceRepository.findFirstByCategoryContainingIgnoreCaseOrderByPriceAsc("rửa").orElse(null);
+                if (cheapestWash != null) {
+                    discount = BigDecimal.valueOf(cheapestWash.getPrice());
+                    
+                    // Phải cộng thêm giá trị của dịch vụ được tặng vào tổng tiền trước khi trừ đi ở discount
+                    baseTotal = baseTotal.add(discount);
+
+                    // Thêm item vào booking ngay lập tức (với giá 0đ)
+                    com.carcarehome.backend.entity.BookingItem freeItem = new com.carcarehome.backend.entity.BookingItem();
+                    freeItem.setServiceType(cheapestWash.getName() + " (Tặng kèm)");
+                    freeItem.setPrice(BigDecimal.ZERO);
+                    freeItem.setVehicleType(booking.getVehicleType() != null ? booking.getVehicleType() : "N/A");
+                    freeItem.setVehiclePlate(booking.getVehiclePlate() != null ? booking.getVehiclePlate() : "N/A");
+                    booking.addItem(freeItem);
+                    
+                    // Cập nhật serviceType text - để hiển thị đẹp hơn
+                    if (booking.getServiceType() == null || booking.getServiceType().isBlank()) {
+                        booking.setServiceType(freeItem.getServiceType());
+                    } else if (!booking.getServiceType().contains(freeItem.getServiceType())) {
+                        booking.setServiceType(booking.getServiceType() + " | " + freeItem.getServiceType());
+                    }
+                }
             }
 
             // Cập nhật lại tổng tiền sau giảm giá
@@ -147,7 +183,20 @@ public class BookingService {
         }
         
         // Logic thanh toán & đặt cọc (Dựa trên giá sau giảm giá)
-        if ("MOMO".equalsIgnoreCase(request.getPaymentMethod())) {
+        boolean skipDeposit = false;
+        if (request.getCustomerEmail() != null && !request.getCustomerEmail().isBlank()) {
+            User customer = userRepository.findByEmail(request.getCustomerEmail().trim()).orElse(null);
+            if (customer != null && ("GOLD".equalsIgnoreCase(customer.getTier()) || "VIP".equalsIgnoreCase(customer.getTier()))) {
+                skipDeposit = true;
+            }
+        }
+
+        if (skipDeposit) {
+            booking.setDepositAmount(BigDecimal.ZERO);
+            booking.setPaymentStatus("UNPAID");
+            booking.setStatus("PENDING");
+            booking.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "CASH");
+        } else if ("MOMO".equalsIgnoreCase(request.getPaymentMethod())) {
             booking.setPaymentMethod("MOMO");
             booking.setDepositAmount(booking.getTotalPrice()); 
             booking.setPaymentStatus("UNPAID");
@@ -359,11 +408,32 @@ public class BookingService {
 
     @Scheduled(fixedRate = 60000) // Kiểm tra mỗi phút
     public void cancelExpiredBookings() {
-        LocalDateTime fiveMinsAgo = LocalDateTime.now().minusMinutes(5);
-        List<Booking> expired = bookingRepository.findByStatusAndCreatedAtBefore("WAITING_FOR_PAYMENT", fiveMinsAgo);
-        for (Booking b : expired) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // 1. Hủy các đơn chờ thanh toán quá 5 phút (MoMo chưa trả tiền)
+        LocalDateTime fiveMinsAgo = now.minusMinutes(5);
+        List<Booking> unpaid = bookingRepository.findByStatusAndCreatedAtBefore("WAITING_FOR_PAYMENT", fiveMinsAgo);
+        for (Booking b : unpaid) {
             b.setStatus("CANCELLED");
             bookingRepository.save(b);
+        }
+
+        // 2. Tự động hủy các đơn đã cọc nhưng quá giờ hẹn mà chưa phân công hoặc chưa bắt đầu
+        // Kiểm tra các đơn PENDING hoặc SUCCESS đã quá giờ hẹn 30 phút
+        List<Booking> allActive = bookingRepository.findAll();
+        for (Booking b : allActive) {
+            if (("PENDING".equals(b.getStatus()) || "SUCCESS".equals(b.getStatus()) || "STAFF_REJECT".equals(b.getStatus()))) {
+                if (b.getBookingDate() != null && b.getBookingTime() != null) {
+                    LocalDateTime scheduledTime = LocalDateTime.of(b.getBookingDate(), b.getBookingTime());
+                    // Nếu quá giờ hẹn 30 phút mà vẫn chưa IN_PROGRESS thì hủy
+                    if (scheduledTime.plusMinutes(30).isBefore(now)) {
+                        b.setStatus("CANCEL");
+                        b.getAssignedStaffs().clear();
+                        bookingRepository.save(b);
+                        System.out.println("Auto-cancelled stagnant booking: " + b.getId());
+                    }
+                }
+            }
         }
     }
 
