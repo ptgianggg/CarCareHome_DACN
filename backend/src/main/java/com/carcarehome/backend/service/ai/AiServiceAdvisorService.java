@@ -19,16 +19,16 @@ public class AiServiceAdvisorService {
 
     private final ServiceService serviceService;
     private final VehicleIssueRuleEngine ruleEngine;
-    private final OpenRouterServiceAdvisorClient openRouterClient;
+    private final GroqServiceAdvisorClient groqClient;
 
     public AiServiceAdvisorService(
             ServiceService serviceService,
             VehicleIssueRuleEngine ruleEngine,
-            OpenRouterServiceAdvisorClient openRouterClient
+            GroqServiceAdvisorClient groqClient
     ) {
         this.serviceService = serviceService;
         this.ruleEngine = ruleEngine;
-        this.openRouterClient = openRouterClient;
+        this.groqClient = groqClient;
     }
 
     public AiServiceAdvisorResponse advise(String description, MultipartFile image) throws IOException {
@@ -43,7 +43,7 @@ public class AiServiceAdvisorService {
                 .collect(Collectors.toList());
 
         VehicleIssueRuleEngine.RuleContext ruleContext = ruleEngine.analyze(description, activeServices);
-        OpenRouterServiceAdvisorClient.AdvisorResult aiResult = openRouterClient.generateAdvice(
+        GroqServiceAdvisorClient.AdvisorResult aiResult = groqClient.generateAdvice(
                 buildPrompt(description, ruleContext, image),
                 image
         );
@@ -55,7 +55,7 @@ public class AiServiceAdvisorService {
                 : List.of();
 
         return new AiServiceAdvisorResponse(
-                "OpenRouter",
+                "Groq",
                 ruleContext.ruleId(),
                 relevant,
                 relevant ? "" : fallback(aiResult.rejectionReason(), "Minh chi ho tro noi dung lien quan den o to."),
@@ -80,14 +80,14 @@ public class AiServiceAdvisorService {
 
     private List<AiServiceRecommendationDto> mergeRecommendations(
             VehicleIssueRuleEngine.RuleContext ruleContext,
-            OpenRouterServiceAdvisorClient.AdvisorResult aiResult
+            GroqServiceAdvisorClient.AdvisorResult aiResult
     ) {
         Map<Long, Service> serviceMap = ruleContext.candidateServices().stream()
                 .collect(Collectors.toMap(Service::getId, service -> service, (left, right) -> left, LinkedHashMap::new));
 
         List<AiServiceRecommendationDto> merged = new ArrayList<>();
         if (aiResult.recommendations() != null) {
-            for (OpenRouterServiceAdvisorClient.AdvisorRecommendation recommendation : aiResult.recommendations()) {
+            for (GroqServiceAdvisorClient.AdvisorRecommendation recommendation : aiResult.recommendations()) {
                 if (recommendation == null || recommendation.serviceId() == null) {
                     continue;
                 }

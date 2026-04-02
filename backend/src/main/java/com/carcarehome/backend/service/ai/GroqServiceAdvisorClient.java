@@ -19,29 +19,27 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-public class OpenRouterServiceAdvisorClient {
+public class GroqServiceAdvisorClient {
 
-    private static final String DEFAULT_MODEL = "openrouter/free";
+    private static final String DEFAULT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+    private static final String API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${ai.openrouter.api-key:}")
+    @Value("${ai.groq.api-key:}")
     private String apiKey;
 
-    @Value("${ai.openrouter.model:" + DEFAULT_MODEL + "}")
+    @Value("${ai.groq.model:" + DEFAULT_MODEL + "}")
     private String model;
 
-    @Value("${app.frontend-url:http://localhost:5173}")
-    private String frontendUrl;
-
-    public OpenRouterServiceAdvisorClient(ObjectMapper objectMapper) {
+    public GroqServiceAdvisorClient(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
     public AdvisorResult generateAdvice(String prompt, MultipartFile image) throws IOException {
         if (!StringUtils.hasText(apiKey)) {
-            throw new IllegalStateException("Chua cau hinh OPENROUTER_API_KEY cho backend.");
+            throw new IllegalStateException("Chua cau hinh GROQ_API_KEY cho backend.");
         }
 
         List<Map<String, Object>> content = new ArrayList<>();
@@ -65,36 +63,35 @@ public class OpenRouterServiceAdvisorClient {
                 "role", "user",
                 "content", content
         )));
+        requestBody.put("temperature", 0.2);
+        requestBody.put("max_completion_tokens", 700);
         requestBody.put("response_format", Map.of(
                 "type", "json_schema",
                 "json_schema", Map.of(
                         "name", "service_advisor_response",
-                        "strict", true,
+                        "strict", false,
                         "schema", buildSchema()
                 )
         ));
-        requestBody.put("plugins", List.of(Map.of("id", "response-healing")));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
-        headers.set("HTTP-Referer", frontendUrl);
-        headers.set("X-Title", "CarCareHome");
 
         JsonNode responseNode = restTemplate.postForObject(
-                "https://openrouter.ai/api/v1/chat/completions",
+                API_URL,
                 new HttpEntity<>(requestBody, headers),
                 JsonNode.class
         );
 
         if (responseNode == null) {
-            throw new IllegalStateException("OpenRouter khong tra ve du lieu.");
+            throw new IllegalStateException("Groq khong tra ve du lieu.");
         }
 
         JsonNode messageNode = responseNode.path("choices").path(0).path("message");
         String payload = extractPayload(messageNode);
         if (!StringUtils.hasText(payload)) {
-            throw new IllegalStateException("Khong doc duoc structured output tu OpenRouter.");
+            throw new IllegalStateException("Khong doc duoc du lieu tu Groq.");
         }
 
         return objectMapper.readValue(payload, AdvisorResult.class);
