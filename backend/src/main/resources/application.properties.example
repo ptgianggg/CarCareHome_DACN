@@ -1,0 +1,74 @@
+# ==============================
+
+# APPLICATION CONFIG
+
+# ==============================
+
+spring.application.name=backend
+
+# ==============================
+
+# DATABASE CONFIG
+
+# ==============================
+
+spring.datasource.url=jdbc:mysql://localhost:3306/YOUR_DB_NAME?allowPublicKeyRetrieval=true&useSSL=false
+spring.datasource.username=YOUR_DB_USERNAME
+spring.datasource.password=YOUR_DB_PASSWORD
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# ==============================
+
+# GOOGLE OAUTH
+
+# ==============================
+
+google.client.id=YOUR_GOOGLE_CLIENT_ID
+
+# ==============================
+
+# MAIL CONFIGURATION (GMAIL SMTP)
+
+# ==============================
+
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=[YOUR_EMAIL@gmail.com](mailto:YOUR_EMAIL@gmail.com)
+spring.mail.password=YOUR_APP_PASSWORD
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+
+# ==============================
+
+# MOMO PAYMENT CONFIG
+
+# ==============================
+
+momo.api-url=https://test-payment.momo.vn/gw_payment/transactionProcessor
+momo.partner-code=YOUR_PARTNER_CODE
+momo.access-key=YOUR_ACCESS_KEY
+momo.secret-key=YOUR_SECRET_KEY
+momo.return-url=http://localhost:8080/api/momo/callback
+momo.notify-url=http://localhost:8080/api/momo/notify
+
+# ==============================
+
+# FRONTEND URL
+
+# ==============================
+
+app.frontend-url=http://localhost:5173
+
+# ==============================
+
+# FILE UPLOAD LIMIT
+
+# ==============================
+
+spring.servlet.multipart.max-file-size=20MB
+spring.servlet.multipart.max-request-size=20MB
+server.tomcat.max-http-form-post-size=20971520
+server.tomcat.max-swallow-size=20971520
