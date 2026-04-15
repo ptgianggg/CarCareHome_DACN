@@ -30,7 +30,7 @@ public class User {
     private Integer pointsLifetime = 0;
 
     @Column(name = "tier", nullable = false)
-    private String tier = "BRONZE"; // BRONZE, SILVER, GOLD, VIP
+    private String tier = "BRONZE"; // BRONZE, SILVER,  , VIP
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")

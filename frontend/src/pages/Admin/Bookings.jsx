@@ -105,7 +105,7 @@ function BookingManagement() {
   };
 
   const handleAssignStaff = async () => {
-    if (selectedStaffIds.length === 0 || !detailBooking) return;
+    if (!detailBooking) return;
     setIsAssigning(true);
     try {
         await assignStaff(detailBooking.id, selectedStaffIds);
@@ -179,6 +179,7 @@ function BookingManagement() {
       if (b.assignedStaffs && b.assignedStaffs.length > 0 && 
           b.status !== 'COMPLETED' && 
           b.status !== 'CANCEL' && 
+          b.status !== 'CANCELLED' && 
           b.status !== 'STAFF_REJECT') {
         b.assignedStaffs.forEach(s => busyIds.add(s.id));
       }

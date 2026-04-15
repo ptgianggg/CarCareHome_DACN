@@ -12,17 +12,13 @@ public class BookingRequest {
     @NotBlank(message = "Số điện thoại không được để trống")
     private String customerPhone;
 
-    @NotBlank(message = "Email không được để trống")
     @jakarta.validation.constraints.Email(message = "Email không hợp lệ")
     private String customerEmail;
 
-    @NotBlank(message = "Loại xe không được để trống")
     private String vehicleType;
 
-    @NotBlank(message = "Biển số xe không được để trống")
     private String vehiclePlate;
 
-    @NotBlank(message = "Loại dịch vụ không được để trống")
     private String serviceType;
 
     @jakarta.validation.constraints.NotNull(message = "Ngày đặt lịch không được để trống")
